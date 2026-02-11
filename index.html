@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>南京地图 - 带图片详情 - 小智</title>
+    <title>南京地图 - 点击标题跳转 - 小智</title>
     <style>
         html, body, #container {
             width: 100%;
@@ -52,20 +52,19 @@
             margin-right: 8px;
         }
 
-        /* --- 自定义弹窗样式 (新增了图片样式) --- */
+        /* --- 自定义弹窗样式 --- */
         .custom-info {
-            padding: 0; /* 去掉内边距，为了让图片顶头显示更好看，或者保留 */
+            padding: 0;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            width: 260px; /* 稍微宽一点以容纳图片 */
-            overflow: hidden; /* 防止图片圆角溢出 */
+            width: 260px;
+            overflow: hidden;
         }
-        /* 弹窗里的图片样式 */
         .custom-info-img {
             width: 100%;
-            height: 140px; /* 固定高度 */
-            object-fit: cover; /* 保持比例裁剪，不拉伸 */
+            height: 140px;
+            object-fit: cover;
             display: block;
         }
         .custom-info-body {
@@ -73,12 +72,31 @@
         }
         .custom-info h3 {
             margin: 0 0 8px 0;
-            color: #333;
             font-size: 16px;
             border-left-width: 4px;
             border-left-style: solid;
             padding-left: 8px;
         }
+        
+        /* --- 新增：标题链接样式 --- */
+        .custom-info h3 a {
+            text-decoration: none;     /* 去掉默认下划线 */
+            color: #333;               /* 默认颜色深灰 */
+            transition: color 0.2s;    /* 颜色变化过渡 */
+            display: block;            /* 让链接填满整行 */
+            cursor: pointer;
+        }
+        .custom-info h3 a:hover {
+            color: #1890ff;            /* 鼠标悬停变蓝 */
+            text-decoration: underline;/* 鼠标悬停显示下划线 */
+        }
+        /* 加一个小图标提示可以点击 (可选) */
+        .custom-info h3 a::after {
+            content: " 🔗";
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
         .custom-info p {
             margin: 0;
             color: #666;
@@ -140,7 +158,7 @@
 
     var currentMarkers = [];
 
-    // 1. 数据更新：增加了 image 字段 (使用网络图作为示例)
+    // 1. 数据更新：增加了 link 字段 (跳转的目标网址)
     var markersData = [
         {
             position: [118.736965, 32.015245],
@@ -149,8 +167,8 @@
             category: "shopping",
             color: "#ff4d4f",
             label: "青",
-            // 这是一个示例图片链接，你可以换成你本地的图片路径
-            image: "https://webapi.amap.com/theme/v1.3/images/newpc/way_btn2.png" 
+            image: "https://webapi.amap.com/theme/v1.3/images/newpc/way_btn2.png",
+            link: "https://www.xdf.cn/" // 示例链接
         },
         {
             position: [118.740514, 32.044607],
@@ -159,7 +177,8 @@
             category: "history",
             color: "#1890ff",
             label: "高",
-            image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg"
+            image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg",
+            link: "https://www.baidu.com/s?wd=高中清江校区" // 百度搜索示例
         },
         {
             position: [118.788487, 32.022987],
@@ -168,7 +187,8 @@
             category: "culture",
             color: "#52c41a",
             label: "庙",
-            image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png"
+            image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
+            link: "http://www.njfzm.net/" // 夫子庙官网示例
         },
         {
             position: [118.79647, 32.07057],
@@ -177,20 +197,16 @@
             category: "scenery",
             color: "#faad14",
             label: "湖",
-            image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png"
+            image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+            link: "https://baike.baidu.com/item/玄武湖/54570"
         }
     ];
-    
-    // 注意：上面的 image 链接我使用了高德的图标作为占位符，
-    // 实际使用时，请替换成真实的风景照片 URL，例如：
-    // image: "images/xinjiekou.jpg" 
 
     function renderMarkers(data) {
         map.remove(currentMarkers);
         currentMarkers = [];
 
         data.forEach(function(item) {
-            // 标记点的 HTML (保持不变)
             var markerContent = `
                 <div class="css-marker" style="background-color: ${item.color};">
                     ${item.label}
@@ -211,15 +227,15 @@
                 offset: new AMap.Pixel(-15, -35)
             });
 
-            // 2. 信息窗体内容的更新：加入了 <img> 标签
+            // 2. 模板更新：标题部分包裹了 <a> 标签
+            // target="_blank" 表示在新窗口打开
             var infoContent = `
                 <div class="custom-info">
-                    <!-- 图片区域 -->
                     <img src="${item.image}" class="custom-info-img" alt="${item.title}">
-                    
-                    <!-- 文字区域 -->
                     <div class="custom-info-body">
-                        <h3 style="border-left-color: ${item.color};">${item.title}</h3>
+                        <h3 style="border-left-color: ${item.color};">
+                            <a href="${item.link}" target="_blank" title="点击查看详情">${item.title}</a>
+                        </h3>
                         <p>${item.content}</p>
                     </div>
                 </div>
@@ -227,8 +243,7 @@
 
             var infoWindow = new AMap.InfoWindow({
                 content: infoContent,
-                offset: new AMap.Pixel(0, -35),
-                // isCustom: true // 如果你想完全去掉高德默认的白色边框和关闭按钮，可以打开这个，但需要自己写关闭逻辑
+                offset: new AMap.Pixel(0, -35)
             });
 
             marker.on('click', function() {
