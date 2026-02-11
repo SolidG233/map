@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>南京地图 - 带图片详情 - 小智</title>
+    <style>
+        html, body, #container {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        /* --- 控制面板样式 (保持不变) --- */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            z-index: 100;
+            width: 200px;
+        }
+        .control-panel h4 { margin: 0 0 10px 0; font-size: 16px; }
+        .filter-btn {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            cursor: pointer;
+            border-radius: 4px;
+            text-align: left;
+            transition: all 0.3s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: #e6f7ff;
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+        .filter-btn span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* --- 自定义弹窗样式 (新增了图片样式) --- */
+        .custom-info {
+            padding: 0; /* 去掉内边距，为了让图片顶头显示更好看，或者保留 */
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            width: 260px; /* 稍微宽一点以容纳图片 */
+            overflow: hidden; /* 防止图片圆角溢出 */
+        }
+        /* 弹窗里的图片样式 */
+        .custom-info-img {
+            width: 100%;
+            height: 140px; /* 固定高度 */
+            object-fit: cover; /* 保持比例裁剪，不拉伸 */
+            display: block;
+        }
+        .custom-info-body {
+            padding: 12px;
+        }
+        .custom-info h3 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 16px;
+            border-left-width: 4px;
+            border-left-style: solid;
+            padding-left: 8px;
+        }
+        .custom-info p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* --- 标记点样式 (保持不变) --- */
+        .css-marker {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 2px solid white;
+            position: relative;
+        }
+    </style>
+    
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: '6dad3452c1fdd8a908cee2623088afa5' 
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=0a20910de98845bf4c6dc64da5e505a4"></script>
+</head>
+<body>
+
+<div id="container"></div>
+
+<div class="control-panel">
+    <h4>分类筛选</h4>
+    <button class="filter-btn active" onclick="filterMarkers('all')">
+        <span style="background: #333;"></span>全部显示
+    </button>
+    <button class="filter-btn" onclick="filterMarkers('shopping')">
+        <span style="background: #ff4d4f;"></span>商业中心
+    </button>
+    <button class="filter-btn" onclick="filterMarkers('history')">
+        <span style="background: #1890ff;"></span>历史古迹
+    </button>
+    <button class="filter-btn" onclick="filterMarkers('culture')">
+        <span style="background: #52c41a;"></span>文化圣地
+    </button>
+    <button class="filter-btn" onclick="filterMarkers('scenery')">
+        <span style="background: #faad14;"></span>自然风光
+    </button>
+</div>
+
+<script type="text/javascript">
+    var map = new AMap.Map('container', {
+        zoom: 12, 
+        center: [118.796877, 32.060255], 
+        viewMode: '3D'
+    });
+
+    var currentMarkers = [];
+
+    // 1. 数据更新：增加了 image 字段 (使用网络图作为示例)
+    var markersData = [
+        {
+            position: [118.736965, 32.015245],
+            title: "青少兴隆大街校区",
+            content: "南京市建邺区沙洲街道江东中路211号新东方素质成长中心",
+            category: "shopping",
+            color: "#ff4d4f",
+            label: "青",
+            // 这是一个示例图片链接，你可以换成你本地的图片路径
+            image: "https://webapi.amap.com/theme/v1.3/images/newpc/way_btn2.png" 
+        },
+        {
+            position: [118.740514, 32.044607],
+            title: "高中清江校区",
+            content: "南京市鼓楼区清江苏宁广场四楼",
+            category: "history",
+            color: "#1890ff",
+            label: "高",
+            image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg"
+        },
+        {
+            position: [118.788487, 32.022987],
+            title: "夫子庙",
+            content: "中国四大文庙之一，秦淮河畔的文化中心。",
+            category: "culture",
+            color: "#52c41a",
+            label: "庙",
+            image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png"
+        },
+        {
+            position: [118.79647, 32.07057],
+            title: "玄武湖",
+            content: "中国最大的皇家园林湖泊，江南三大名湖之一。",
+            category: "scenery",
+            color: "#faad14",
+            label: "湖",
+            image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png"
+        }
+    ];
+    
+    // 注意：上面的 image 链接我使用了高德的图标作为占位符，
+    // 实际使用时，请替换成真实的风景照片 URL，例如：
+    // image: "images/xinjiekou.jpg" 
+
+    function renderMarkers(data) {
+        map.remove(currentMarkers);
+        currentMarkers = [];
+
+        data.forEach(function(item) {
+            // 标记点的 HTML (保持不变)
+            var markerContent = `
+                <div class="css-marker" style="background-color: ${item.color};">
+                    ${item.label}
+                    <div style="
+                        position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+                        width: 0; height: 0; 
+                        border-left: 6px solid transparent; border-right: 6px solid transparent;
+                        border-top: 6px solid ${item.color};">
+                    </div>
+                </div>
+            `;
+
+            var marker = new AMap.Marker({
+                position: item.position,
+                map: map,
+                content: markerContent,
+                title: item.title,
+                offset: new AMap.Pixel(-15, -35)
+            });
+
+            // 2. 信息窗体内容的更新：加入了 <img> 标签
+            var infoContent = `
+                <div class="custom-info">
+                    <!-- 图片区域 -->
+                    <img src="${item.image}" class="custom-info-img" alt="${item.title}">
+                    
+                    <!-- 文字区域 -->
+                    <div class="custom-info-body">
+                        <h3 style="border-left-color: ${item.color};">${item.title}</h3>
+                        <p>${item.content}</p>
+                    </div>
+                </div>
+            `;
+
+            var infoWindow = new AMap.InfoWindow({
+                content: infoContent,
+                offset: new AMap.Pixel(0, -35),
+                // isCustom: true // 如果你想完全去掉高德默认的白色边框和关闭按钮，可以打开这个，但需要自己写关闭逻辑
+            });
+
+            marker.on('click', function() {
+                infoWindow.open(map, marker.getPosition());
+            });
+
+            currentMarkers.push(marker);
+        });
+    }
+
+    function filterMarkers(category) {
+        var buttons = document.querySelectorAll('.filter-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        if (category === 'all') {
+            renderMarkers(markersData);
+        } else {
+            var filteredData = markersData.filter(function(item) {
+                return item.category === category;
+            });
+            renderMarkers(filteredData);
+        }
+    }
+
+    renderMarkers(markersData);
+
+    AMap.plugin(['AMap.ToolBar', 'AMap.Scale'], function(){
+        map.addControl(new AMap.ToolBar());
+        map.addControl(new AMap.Scale());
+    });
+
+</script>
+</body>
+</html>
