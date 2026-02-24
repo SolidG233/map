@@ -456,12 +456,14 @@
             var endPoint = [endLng, endLat];
 
             // 根据类型加载不同的插件
+            // 关键修改：添加 hideMarkers: true
             if (type === 'driving') {
                 AMap.plugin('AMap.Driving', function() {
                     currentRoutePlugin = new AMap.Driving({
                         map: map,
                         panel: "routeContent", 
-                        policy: AMap.DrivingPolicy.LEAST_TIME
+                        policy: AMap.DrivingPolicy.LEAST_TIME,
+                        hideMarkers: true // <--- 关键修改：隐藏默认的起终点标记
                     });
                     currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
                         if (status !== 'complete') {
@@ -475,7 +477,8 @@
                         map: map,
                         panel: "routeContent",
                         city: '南京市', 
-                        policy: AMap.TransferPolicy.LEAST_TIME
+                        policy: AMap.TransferPolicy.LEAST_TIME,
+                        hideMarkers: true // <--- 关键修改：隐藏默认的起终点标记
                     });
                     currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
                         if (status !== 'complete') {
@@ -487,7 +490,8 @@
                 AMap.plugin('AMap.Walking', function() {
                     currentRoutePlugin = new AMap.Walking({
                         map: map,
-                        panel: "routeContent"
+                        panel: "routeContent",
+                        hideMarkers: true // <--- 关键修改：隐藏默认的起终点标记
                     });
                     currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
                         if (status !== 'complete') {
