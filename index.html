@@ -14,22 +14,21 @@
             font-family: "Microsoft YaHei", sans-serif;
         }
 
-        /* --- 控制面板样式 (修改版) --- */
+        /* --- 控制面板样式 --- */
         .control-panel {
             position: absolute;
             top: 20px;
             left: 20px;
             background: white;
-            padding: 0; /* Padding 移到内部元素控制 */
+            padding: 0;
             border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             z-index: 100;
             width: 200px;
-            overflow: hidden; /* 关键：隐藏折叠的内容 */
-            transition: height 0.3s ease; /* 添加平滑过渡动画 */
+            overflow: hidden;
+            transition: height 0.3s ease;
         }
 
-        /* 面板标题栏 */
         .panel-header {
             padding: 15px;
             background: #fff;
@@ -37,46 +36,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid transparent; /* 默认无底边框 */
+            border-bottom: 1px solid transparent;
         }
         
-        .panel-header:hover {
-            background-color: #f5f5f5;
-        }
-
-        .panel-header h4 { 
-            margin: 0; 
-            font-size: 16px; 
-            color: #333;
-        }
-
-        /* 折叠图标 */
-        .toggle-icon {
-            font-size: 12px;
-            color: #999;
-            transition: transform 0.3s;
-        }
-
-        /* 面板内容区域 */
-        .panel-content {
-            padding: 0 15px 15px 15px;
-            display: block; /* 默认显示 */
-        }
-
-        /* --- 折叠状态类 --- */
-        .control-panel.collapsed .panel-content {
-            display: none;
-        }
+        .panel-header:hover { background-color: #f5f5f5; }
+        .panel-header h4 { margin: 0; font-size: 16px; color: #333; }
+        .toggle-icon { font-size: 12px; color: #999; transition: transform 0.3s; }
+        .panel-content { padding: 0 15px 15px 15px; display: block; }
         
-        .control-panel.collapsed .panel-header {
-            border-bottom: none;
-        }
+        .control-panel.collapsed .panel-content { display: none; }
+        .control-panel.collapsed .panel-header { border-bottom: none; }
+        .control-panel.collapsed .toggle-icon { transform: rotate(-90deg); }
 
-        .control-panel.collapsed .toggle-icon {
-            transform: rotate(-90deg); /* 折叠时旋转图标 */
-        }
-
-        /* 按钮样式 */
         .filter-btn {
             display: block;
             width: 100%;
@@ -90,7 +61,6 @@
             transition: all 0.3s;
         }
         .filter-btn:last-child { margin-bottom: 0; }
-        
         .filter-btn:hover, .filter-btn.active {
             background: #e6f7ff;
             border-color: #1890ff;
@@ -98,104 +68,144 @@
         }
         .filter-btn span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
 
-        /* --- 弹窗样式 --- */
+        /* --- 标记点基础样式 --- */
+        .css-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(0,0,0,0.4);
+            border: 2px solid white;
+            position: relative;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 1. 文字标签样式 */
+        .marker-label {
+            position: absolute;
+            top: -28px; /* 文字在上方 */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #333;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid #eee;
+            pointer-events: none; /* 让鼠标点击穿透文字，点到下面的Marker */
+            
+            opacity: 0; 
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        /* 2. 悬停图片预览样式 (新增功能) */
+        .marker-preview-img {
+            position: absolute;
+            bottom: 24px; /* 图片在点上方 */
+            left: 50%;
+            transform: translateX(-50%) scale(0); /* 默认缩小隐藏 */
+            width: 100px; /* 预览图宽度 */
+            height: 70px; /* 预览图高度 */
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            background: #fff;
+            z-index: 20; /* 层级最高，盖住文字 */
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 弹性弹出效果 */
+            transform-origin: bottom center;
+            pointer-events: none;
+        }
+
+        /* 标记点下方的小箭头 */
+        .marker-arrow {
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top-width: 5px;
+            border-top-style: solid;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* --- 交互状态控制 --- */
+        
+        /* 状态A: 鼠标悬停时 */
+        .css-marker:hover {
+            transform: scale(1.2) !important;
+            z-index: 999;
+        }
+        
+        /* 悬停时：如果有图片，显示图片；如果没有图片，显示文字 */
+        .css-marker:hover .marker-preview-img {
+            transform: translateX(-50%) scale(1); /* 图片弹出 */
+        }
+        
+        /* 悬停时：如果显示了图片，就把文字隐藏掉，防止重叠难看 */
+        .css-marker:hover .has-img-label {
+            opacity: 0 !important; 
+            visibility: hidden !important;
+        }
+        
+        /* 悬停时：如果没有图片，务必显示文字 */
+        .css-marker:hover .no-img-label {
+            opacity: 1;
+            visibility: visible;
+        }
+
+
+        /* 状态B: 地图放大模式 (Zoom > 13.5) */
+        .css-marker.show-text {
+            width: 20px;
+            height: 20px;
+        }
+        .css-marker.show-text .marker-arrow {
+            opacity: 1;
+        }
+        /* 放大时显示文字 */
+        .css-marker.show-text .marker-label {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* --- 弹窗样式 (点击后的大图) --- */
         .custom-info { 
             position: relative; 
             padding: 0; 
             background: white; 
             border-radius: 8px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
-            width: 260px; 
+            width: 280px; 
             overflow: hidden; 
         }
-        
-        /* 关闭按钮 */
         .info-close-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 24px;
-            height: 24px;
-            background: rgba(0,0,0,0.4);
-            color: white;
-            text-align: center;
-            line-height: 22px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
-            z-index: 10;
-            transition: background 0.2s;
+            position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
+            background: rgba(0,0,0,0.4); color: white; text-align: center;
+            line-height: 22px; border-radius: 50%; font-size: 18px; cursor: pointer; z-index: 10;
         }
         .info-close-btn:hover { background: rgba(0,0,0,0.7); }
-
-        .custom-info-img { width: 100%; height: 140px; object-fit: cover; display: block; }
-        .custom-info-body { padding: 12px; }
-        
-        /* 标题样式调整 */
-        .custom-info h3 { 
-            margin: 0 0 8px 0; 
-            font-size: 16px; 
-            border-left-width: 4px; 
-            border-left-style: solid; 
-            padding-left: 8px; 
-            display: flex; 
-            align-items: center;
-        }
-        
-        /* 链接样式 */
-        .custom-info h3 a { 
-            text-decoration: none; 
-            color: #333; 
-            transition: color 0.2s; 
-            display: flex; 
-            align-items: center; 
-            cursor: pointer; 
-        }
+        .custom-info-img { width: 100%; height: 160px; object-fit: cover; display: block; }
+        .custom-info-body { padding: 15px; }
+        .custom-info h3 { margin: 0 0 8px 0; font-size: 16px; border-left-width: 4px; border-left-style: solid; padding-left: 8px; display: flex; align-items: center;}
+        .custom-info h3 a { text-decoration: none; color: #333; display: flex; align-items: center; }
         .custom-info h3 a:hover { color: #1890ff; text-decoration: underline; }
-        
-        /* --- 链接图标样式 --- */
-        .link-icon-svg {
-            width: 16px;
-            height: 16px;
-            margin-left: 6px;
-            fill: #999; 
-            transition: fill 0.2s;
-        }
-        .custom-info h3 a:hover .link-icon-svg {
-            fill: #1890ff;
-        }
-
+        .link-icon-svg { width: 16px; height: 16px; margin-left: 6px; fill: #999; }
+        .custom-info h3 a:hover .link-icon-svg { fill: #1890ff; }
         .custom-info p { margin: 0; color: #666; font-size: 13px; line-height: 1.5; }
-
-        /* --- 标记点基础样式 --- */
-        .css-marker {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            color: white;
-            text-align: center;
-            line-height: 30px;
-            font-weight: bold;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            border: 2px solid white;
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-origin: center bottom; 
-            box-sizing: border-box;
-        }
-
-        .css-marker.mini-mode {
-            width: 14px !important;
-            height: 14px !important;
-            border-radius: 50% !important;
-            border-width: 2px !important;
-            font-size: 0 !important;
-            line-height: 0 !important;
-            box-shadow: 0 0 4px rgba(0,0,0,0.4) !important;
-            transform: translateY(32px) !important; 
-        }
-
-        .css-marker.mini-mode .arrow-icon { opacity: 0; transition: opacity 0.2s; }
     </style>
     
     <script type="text/javascript">
@@ -209,8 +219,6 @@
 
 <div id="container"></div>
 
-<!-- 修改后的控制面板结构 -->
-<!-- 默认添加 'collapsed' 类名，使其初始状态为折叠。如果想默认展开，去掉 class="collapsed" -->
 <div class="control-panel collapsed" id="filterPanel">
     <div class="panel-header" onclick="togglePanel()">
         <h4>分类筛选</h4>
@@ -232,7 +240,6 @@
         viewMode: '3D'
     });
 
-    // --- 新增：切换面板折叠状态的函数 ---
     function togglePanel() {
         var panel = document.getElementById('filterPanel');
         panel.classList.toggle('collapsed');
@@ -240,46 +247,46 @@
 
     var currentMarkers = [];
     var markersData = [
-
-    // --- 六合 ---
-        { position: [118.843058,32.328519], title: "六合天街校区", content: "南京市六合区雄州街道景兰路2号", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l9bjzjzlFUlQjmL6" },
-    // --- 雨花台区 ---
-        { position: [118.77743,31.981767], title: "雨花校区", content: "南京市雨花台区郁金香路19号东侧1层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G4PXVKBK923j7k1V" },
-        { position: [118.66072,31.907891], title: "板桥花生唐校区", content: "南京市雨花台区新湖大道9号花样年、花生唐3幢1层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G7eFapESneJIKgtJ" },
-    // --- 江北新区 ---
-        { position: [118.726544,32.137333], title: "桥北弘阳校区", content: "南京市江北新区大桥北路48号弘阳广场A2馆3楼3003、3029-3033-3035-3042铺位", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l3i49yPmxvwpOc3M" },
-        { position: [118.743301,32.14203], title: "柳洲东路校区", content: "南京市浦口区柳洲东路189号京新邻里广场第二层2F-B-008", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "" },
-        { position: [118.76135,32.231782], title: "大厂慕斯荟校区", content: "南京市江北新区大厂葛关路380-1号慕斯荟3楼301号铺位", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H2yDYLyDTHm70mqx" },
-    // --- 秦淮区 ---
-        { position: [118.781153,32.020138], title: "三山街校区", content: "南京市秦淮区长乐路9号2号楼1层部分房屋", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/k8GcGTvbS8rlbPjN" },
-        { position: [118.808904,32.032336], title: "瑞金路校区", content: "南京市秦淮区瑞金路街道1楼", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l83MvhDgf36p8ryM" },
-        { position: [118.783418,32.030423], title: "张府园校区", content: "南京市秦淮区中山南路344号3F-301", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G5PfKtD4W23QrGOq" },
-    // --- 浦口区 ---
-        { position: [118.639324,32.069748], title: "江浦校区", content: "南京市浦口区海都路8号金盛田广场2F024-50商铺", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l7if713xJtkBLy5m" },
-    // --- 江宁区 ---
-        { position: [118.84739,31.928693], title: "竹山路校区", content: "南京市江宁区竹山路551号楼E区1楼局部", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H9irejNax4a6oLdt" },
-        { position: [118.820852,31.931825], title: "江宁金鹰校区", content: "南京市江宁区双龙大道1688号江宁购物中心内的A03层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H4xm1y59ZiTUJ2mM" },
-    // --- 建邺区 ---
-        { position: [118.737175,32.015675], title: "兴隆大街校区", content: "南京市建邺区江东中路211号三楼", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l6ZxfekeAjE6YokW" },
-        { position: [118.722122,31.984657], title: "奥体雨润校区", content: "南京市建邺区雨润大街88-2号沙洲街道服务中心3号楼2层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H2S9fLxtxhy1RCfm#comment" },
-        { position: [118.706775,31.966875], title: "奥南邻里茂校区", content: "南京市建邺区太清路6号东南邻里茂购物中心F210室", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "" },
-    // --- 鼓楼区 ---
-        { position: [118.747977,32.047217], title: "清凉门校区", content: "江苏省南京市清凉门大街60号里圩社区服务中心北区二层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G1N2xGJDgVoGlhko" },
-        { position: [118.77861,32.08347], title: "许府巷校区", content: "南京市鼓楼区芦席营97号长江科技园A座1层、B座1层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l7STGGjmA5B5alq0#comment" },
-        { position: [118.803504,32.09946], title: "迈皋桥校区", content: "南京市鼓楼区和燕路239号南昌大厦第三层整层及一楼部分公共使用部位综合大厅", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/jMJl1pnlQv32oLig" },
-        { position: [118.74049,32.044635], title: "清江苏宁校区", content: "江苏省南京市鼓楼区江东北路88号清江广场苏宁广场3F、4F", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l45PNKo9sT131a0k#comment" },
-        { position: [118.741478,32.085963], title: "鼓楼滨江校区", content: "南京市鼓楼区热河南路2号的江苏国际人才公寓裙楼A座L2层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G38afZUlzVxIyA1j#comment" },
-        { position: [118.773491,32.071264], title: "马台街校区", content: "南京市鼓楼区马台街99号三层F311-315", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H3bbHJLjC4bVG8bg" },
-        { position: [118.742864,32.058797], title: "龙江校区", content: "鼓楼区草场门大街96号中青大厦1,2号二层东", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H11YYGEV7ag2BWAy" },
-    // --- 玄武区 ---
-        { position: [118.784711,32.057818], title: "鼓楼校区", content: "中山路366号南京鼓楼邮政大厦2楼", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l65kImEcSwo64d2Q" },
-        { position: [118.85871,32.035648], title: "孝陵卫校区", content: "南京市玄武区中山门大街297号5幢106/107/108/110/111/113室", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/k9bEyqID1Ay9SqP8" },
-    // --- 栖霞区 ---
-        { position: [118.978879,32.130015], title: "仙林湖校区", content: "南京市栖霞区仙林学森路仙林湖社区服务中心A1栋3楼306、308、310-315、343", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/k76TRinqcZdQSMZn#comment" },
-        { position: [118.922866,32.097065], title: "仙林高科校区", content: "南京市栖霞区闲林街道仙林大学城学津路8号高创大厦二楼部分9-12商铺", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H3fe7sMTkGPhruCs" },
-        { position: [118.740514, 32.044607], title: "清江校区", content: "苏宁广场四楼", category: "history", color: "#1890ff", label: "", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.baidu.com" },
-        { position: [118.788487, 32.022987], title: "夫子庙", content: "中国四大文庙之一", category: "culture", color: "#52c41a", label: "", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png", link: "http://www.njfzm.net/" },
-        { position: [118.79647, 32.07057], title: "玄武湖", content: "江南三大名湖之一", category: "scenery", color: "#faad14", label: "", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png", link: "https://baike.baidu.com" }
+        // --- 六合 ---
+        { position: [118.843058,32.328519], title: "六合天街校区", content: "南京市六合区雄州街道景兰路2号", category: "shopping", color: "#ff4d4f", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.dianping.com/shop/l9bjzjzlFUlQjmL6" },
+        // --- 雨花台区 ---
+        { position: [118.77743,31.981767], title: "雨花校区", content: "南京市雨花台区郁金香路19号东侧1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G4PXVKBK923j7k1V" },
+        { position: [118.66072,31.907891], title: "板桥花生唐校区", content: "南京市雨花台区新湖大道9号花样年、花生唐3幢1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G7eFapESneJIKgtJ" },
+        // --- 江北新区 ---
+        { position: [118.726544,32.137333], title: "桥北弘阳校区", content: "南京市江北新区大桥北路48号弘阳广场A2馆3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l3i49yPmxvwpOc3M" },
+        { position: [118.743301,32.14203], title: "柳洲东路校区", content: "南京市浦口区柳洲东路189号京新邻里广场第二层", category: "shopping", color: "#ff4d4f", image: "", link: "" },
+        { position: [118.76135,32.231782], title: "大厂慕斯荟校区", content: "南京市江北新区大厂葛关路380-1号慕斯荟3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H2yDYLyDTHm70mqx" },
+        // --- 秦淮区 ---
+        { position: [118.781153,32.020138], title: "三山街校区", content: "南京市秦淮区长乐路9号2号楼1层部分房屋", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k8GcGTvbS8rlbPjN" },
+        { position: [118.808904,32.032336], title: "瑞金路校区", content: "南京市秦淮区瑞金路街道1楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l83MvhDgf36p8ryM" },
+        { position: [118.783418,32.030423], title: "张府园校区", content: "南京市秦淮区中山南路344号3F-301", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G5PfKtD4W23QrGOq" },
+        // --- 浦口区 ---
+        { position: [118.639324,32.069748], title: "江浦校区", content: "南京市浦口区海都路8号金盛田广场2F024-50商铺", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l7if713xJtkBLy5m" },
+        // --- 江宁区 ---
+        { position: [118.84739,31.928693], title: "竹山路校区", content: "南京市江宁区竹山路551号楼E区1楼局部", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H9irejNax4a6oLdt" },
+        { position: [118.820852,31.931825], title: "江宁金鹰校区", content: "南京市江宁区双龙大道1688号江宁购物中心内的A03层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H4xm1y59ZiTUJ2mM" },
+        // --- 建邺区 ---
+        { position: [118.737175,32.015675], title: "兴隆大街校区", content: "南京市建邺区江东中路211号三楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l6ZxfekeAjE6YokW" },
+        { position: [118.722122,31.984657], title: "奥体雨润校区", content: "南京市建邺区雨润大街88-2号沙洲街道服务中心3号楼2层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H2S9fLxtxhy1RCfm#comment" },
+        { position: [118.706775,31.966875], title: "奥南邻里茂校区", content: "南京市建邺区太清路6号东南邻里茂购物中心F210室", category: "shopping", color: "#ff4d4f", image: "", link: "" },
+        // --- 鼓楼区 ---
+        { position: [118.747977,32.047217], title: "清凉门校区", content: "江苏省南京市清凉门大街60号里圩社区服务中心北区二层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G1N2xGJDgVoGlhko" },
+        { position: [118.77861,32.08347], title: "许府巷校区", content: "南京市鼓楼区芦席营97号长江科技园A座1层、B座1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l7STGGjmA5B5alq0#comment" },
+        { position: [118.803504,32.09946], title: "迈皋桥校区", content: "南京市鼓楼区和燕路239号南昌大厦第三层整层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/jMJl1pnlQv32oLig" },
+        { position: [118.74049,32.044635], title: "清江苏宁校区", content: "江苏省南京市鼓楼区江东北路88号清江广场苏宁广场3F、4F", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l45PNKo9sT131a0k#comment" },
+        { position: [118.741478,32.085963], title: "鼓楼滨江校区", content: "南京市鼓楼区热河南路2号的江苏国际人才公寓裙楼A座L2层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G38afZUlzVxIyA1j#comment" },
+        { position: [118.773491,32.071264], title: "马台街校区", content: "南京市鼓楼区马台街99号三层F311-315", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H3bbHJLjC4bVG8bg" },
+        { position: [118.742864,32.058797], title: "龙江校区", content: "鼓楼区草场门大街96号中青大厦1,2号二层东", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H11YYGEV7ag2BWAy" },
+        // --- 玄武区 ---
+        { position: [118.784711,32.057818], title: "鼓楼校区", content: "中山路366号南京鼓楼邮政大厦2楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l65kImEcSwo64d2Q" },
+        { position: [118.85871,32.035648], title: "孝陵卫校区", content: "南京市玄武区中山门大街297号5幢106/107/108/110/111/113室", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k9bEyqID1Ay9SqP8" },
+        // --- 栖霞区 ---
+        { position: [118.978879,32.130015], title: "仙林湖校区", content: "南京市栖霞区仙林学森路仙林湖社区服务中心A1栋3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k76TRinqcZdQSMZn#comment" },
+        { position: [118.922866,32.097065], title: "仙林高科校区", content: "南京市栖霞区闲林街道仙林大学城学津路8号高创大厦二楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H3fe7sMTkGPhruCs" },
+        // --- 其他 ---
+        { position: [118.740514, 32.044607], title: "清江校区", content: "苏宁广场四楼", category: "history", color: "#1890ff", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.baidu.com" },
+        { position: [118.788487, 32.022987], title: "夫子庙", content: "中国四大文庙之一", category: "culture", color: "#52c41a", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png", link: "http://www.njfzm.net/" },
+        { position: [118.79647, 32.07057], title: "玄武湖", content: "江南三大名湖之一", category: "scenery", color: "#faad14", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png", link: "https://baike.baidu.com" }
     ];
 
     var linkIconSvg = `
@@ -293,15 +300,17 @@
         currentMarkers = [];
 
         data.forEach(function(item) {
+            // 判断是否有图片
+            var hasImage = item.image && item.image !== "";
+            
+            // 构建 Marker 的 HTML
+            // 1. marker-preview-img: 悬停时显示的图片
+            // 2. marker-label: 文字标签 (如果有图片，加 has-img-label 类；没有图片，加 no-img-label 类)
             var markerContent = `
                 <div class="css-marker dynamic-marker" style="background-color: ${item.color};">
-                    ${item.label}
-                    <div class="arrow-icon" style="
-                        position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
-                        width: 0; height: 0; 
-                        border-left: 6px solid transparent; border-right: 6px solid transparent;
-                        border-top: 6px solid ${item.color};">
-                    </div>
+                    ${hasImage ? `<img src="${item.image}" class="marker-preview-img">` : ''}
+                    <span class="marker-label ${hasImage ? 'has-img-label' : 'no-img-label'}" style="border-left: 3px solid ${item.color}">${item.title}</span>
+                    <div class="marker-arrow" style="border-top-color: ${item.color};"></div>
                 </div>
             `;
 
@@ -310,14 +319,15 @@
                 map: map,
                 content: markerContent,
                 title: item.title,
-                offset: new AMap.Pixel(-15, -35),
-                anchor: 'bottom-center'
+                offset: new AMap.Pixel(-8, -8),
+                anchor: 'center'
             });
 
+            // 点击后的详细弹窗 (保留大图)
             var infoContent = `
                 <div class="custom-info">
                     <div class="info-close-btn" onclick="map.clearInfoWindow()">×</div>
-                    <img src="${item.image}" class="custom-info-img" alt="${item.title}">
+                    ${hasImage ? `<img src="${item.image}" class="custom-info-img" alt="${item.title}">` : ''}
                     <div class="custom-info-body">
                         <h3 style="border-left-color: ${item.color};">
                             <a href="${item.link}" target="_blank">
@@ -333,7 +343,7 @@
             var infoWindow = new AMap.InfoWindow({ 
                 isCustom: true, 
                 content: infoContent, 
-                offset: new AMap.Pixel(0, -45)
+                offset: new AMap.Pixel(0, -20)
             });
 
             marker.on('click', function() { infoWindow.open(map, marker.getPosition()); });
@@ -345,9 +355,7 @@
     }
 
     function filterMarkers(category) {
-        // 阻止事件冒泡，防止点击按钮时触发面板折叠
         event.stopPropagation(); 
-        
         var buttons = document.querySelectorAll('.filter-btn');
         buttons.forEach(btn => btn.classList.remove('active'));
         event.currentTarget.classList.add('active');
@@ -358,19 +366,13 @@
     function updateMarkerSize() {
         var zoom = map.getZoom(); 
         var markerDoms = document.querySelectorAll('.dynamic-marker');
-        var miniThreshold = 13;
+        var showTextThreshold = 13.5; 
 
         markerDoms.forEach(function(dom) {
-            if (zoom < miniThreshold) {
-                dom.classList.add('mini-mode');
-                dom.style.transform = ''; 
+            if (zoom >= showTextThreshold) {
+                dom.classList.add('show-text');
             } else {
-                dom.classList.remove('mini-mode');
-                var baseZoom = 12;
-                var scale = 1 + (zoom - baseZoom) * 0.15;
-                if (scale < 0.6) scale = 0.6;
-                if (scale > 2.0) scale = 1.5;
-                dom.style.transform = `scale(${scale})`;
+                dom.classList.remove('show-text');
             }
         });
     }
