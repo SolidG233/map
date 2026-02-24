@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>南京地图 - 带链接图标的矩形弹窗 </title>
+    <title>南京新东方校区分布地图</title>
     <style>
         html, body, #container {
             width: 100%;
@@ -14,19 +14,69 @@
             font-family: "Microsoft YaHei", sans-serif;
         }
 
-        /* --- 控制面板样式 --- */
+        /* --- 控制面板样式 (修改版) --- */
         .control-panel {
             position: absolute;
             top: 20px;
             left: 20px;
             background: white;
-            padding: 15px;
+            padding: 0; /* Padding 移到内部元素控制 */
             border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             z-index: 100;
             width: 200px;
+            overflow: hidden; /* 关键：隐藏折叠的内容 */
+            transition: height 0.3s ease; /* 添加平滑过渡动画 */
         }
-        .control-panel h4 { margin: 0 0 10px 0; font-size: 16px; }
+
+        /* 面板标题栏 */
+        .panel-header {
+            padding: 15px;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid transparent; /* 默认无底边框 */
+        }
+        
+        .panel-header:hover {
+            background-color: #f5f5f5;
+        }
+
+        .panel-header h4 { 
+            margin: 0; 
+            font-size: 16px; 
+            color: #333;
+        }
+
+        /* 折叠图标 */
+        .toggle-icon {
+            font-size: 12px;
+            color: #999;
+            transition: transform 0.3s;
+        }
+
+        /* 面板内容区域 */
+        .panel-content {
+            padding: 0 15px 15px 15px;
+            display: block; /* 默认显示 */
+        }
+
+        /* --- 折叠状态类 --- */
+        .control-panel.collapsed .panel-content {
+            display: none;
+        }
+        
+        .control-panel.collapsed .panel-header {
+            border-bottom: none;
+        }
+
+        .control-panel.collapsed .toggle-icon {
+            transform: rotate(-90deg); /* 折叠时旋转图标 */
+        }
+
+        /* 按钮样式 */
         .filter-btn {
             display: block;
             width: 100%;
@@ -39,6 +89,8 @@
             text-align: left;
             transition: all 0.3s;
         }
+        .filter-btn:last-child { margin-bottom: 0; }
+        
         .filter-btn:hover, .filter-btn.active {
             background: #e6f7ff;
             border-color: #1890ff;
@@ -86,7 +138,7 @@
             border-left-width: 4px; 
             border-left-style: solid; 
             padding-left: 8px; 
-            display: flex; /* 使用 flex 布局让文字和图标对齐 */
+            display: flex; 
             align-items: center;
         }
         
@@ -96,20 +148,19 @@
             color: #333; 
             transition: color 0.2s; 
             display: flex; 
-            align-items: center; /* 垂直居中 */
+            align-items: center; 
             cursor: pointer; 
         }
         .custom-info h3 a:hover { color: #1890ff; text-decoration: underline; }
         
-        /* --- 新增：链接图标样式 --- */
+        /* --- 链接图标样式 --- */
         .link-icon-svg {
             width: 16px;
             height: 16px;
             margin-left: 6px;
-            fill: #999; /* 默认灰色 */
+            fill: #999; 
             transition: fill 0.2s;
         }
-        /* 鼠标悬停在链接上时，图标也变色 */
         .custom-info h3 a:hover .link-icon-svg {
             fill: #1890ff;
         }
@@ -158,13 +209,20 @@
 
 <div id="container"></div>
 
-<div class="control-panel">
-    <h4>分类筛选</h4>
-    <button class="filter-btn active" onclick="filterMarkers('all')"><span style="background: #333;"></span>全部显示</button>
-    <button class="filter-btn" onclick="filterMarkers('shopping')"><span style="background: #ff4d4f;"></span>商业中心</button>
-    <button class="filter-btn" onclick="filterMarkers('history')"><span style="background: #1890ff;"></span>历史古迹</button>
-    <button class="filter-btn" onclick="filterMarkers('culture')"><span style="background: #52c41a;"></span>文化圣地</button>
-    <button class="filter-btn" onclick="filterMarkers('scenery')"><span style="background: #faad14;"></span>自然风光</button>
+<!-- 修改后的控制面板结构 -->
+<!-- 默认添加 'collapsed' 类名，使其初始状态为折叠。如果想默认展开，去掉 class="collapsed" -->
+<div class="control-panel collapsed" id="filterPanel">
+    <div class="panel-header" onclick="togglePanel()">
+        <h4>分类筛选</h4>
+        <span class="toggle-icon">▼</span>
+    </div>
+    <div class="panel-content">
+        <button class="filter-btn active" onclick="filterMarkers('all')"><span style="background: #333;"></span>全部显示</button>
+        <button class="filter-btn" onclick="filterMarkers('shopping')"><span style="background: #ff4d4f;"></span>青少素质</button>
+        <button class="filter-btn" onclick="filterMarkers('history')"><span style="background: #1890ff;"></span>历史古迹</button>
+        <button class="filter-btn" onclick="filterMarkers('culture')"><span style="background: #52c41a;"></span>文化圣地</button>
+        <button class="filter-btn" onclick="filterMarkers('scenery')"><span style="background: #faad14;"></span>自然风光</button>
+    </div>
 </div>
 
 <script type="text/javascript">
@@ -174,15 +232,56 @@
         viewMode: '3D'
     });
 
+    // --- 新增：切换面板折叠状态的函数 ---
+    function togglePanel() {
+        var panel = document.getElementById('filterPanel');
+        panel.classList.toggle('collapsed');
+    }
+
     var currentMarkers = [];
     var markersData = [
-        { position: [118.736965, 32.015245], title: "青少兴隆大街校区", content: "新东方素质成长中心", category: "shopping", color: "#ff4d4f", label: "青", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.dianping.com/shop/l6ZxfekeAjE6YokW" },
-        { position: [118.740514, 32.044607], title: "高中清江校区", content: "苏宁广场四楼", category: "history", color: "#1890ff", label: "高", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.baidu.com" },
-        { position: [118.788487, 32.022987], title: "夫子庙", content: "中国四大文庙之一", category: "culture", color: "#52c41a", label: "庙", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png", link: "http://www.njfzm.net/" },
-        { position: [118.79647, 32.07057], title: "玄武湖", content: "江南三大名湖之一", category: "scenery", color: "#faad14", label: "湖", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png", link: "https://baike.baidu.com" }
+
+    // --- 六合 ---
+        { position: [118.843058,32.328519], title: "六合天街校区", content: "南京市六合区雄州街道景兰路2号", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l9bjzjzlFUlQjmL6" },
+    // --- 雨花台区 ---
+        { position: [118.77743,31.981767], title: "雨花校区", content: "南京市雨花台区郁金香路19号东侧1层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G4PXVKBK923j7k1V" },
+        { position: [118.66072,31.907891], title: "板桥花生唐校区", content: "南京市雨花台区新湖大道9号花样年、花生唐3幢1层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G7eFapESneJIKgtJ" },
+    // --- 江北新区 ---
+        { position: [118.726544,32.137333], title: "桥北弘阳校区", content: "南京市江北新区大桥北路48号弘阳广场A2馆3楼3003、3029-3033-3035-3042铺位", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l3i49yPmxvwpOc3M" },
+        { position: [118.743301,32.14203], title: "柳洲东路校区", content: "南京市浦口区柳洲东路189号京新邻里广场第二层2F-B-008", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "" },
+        { position: [118.76135,32.231782], title: "大厂慕斯荟校区", content: "南京市江北新区大厂葛关路380-1号慕斯荟3楼301号铺位", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H2yDYLyDTHm70mqx" },
+    // --- 秦淮区 ---
+        { position: [118.781153,32.020138], title: "三山街校区", content: "南京市秦淮区长乐路9号2号楼1层部分房屋", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/k8GcGTvbS8rlbPjN" },
+        { position: [118.808904,32.032336], title: "瑞金路校区", content: "南京市秦淮区瑞金路街道1楼", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l83MvhDgf36p8ryM" },
+        { position: [118.783418,32.030423], title: "张府园校区", content: "南京市秦淮区中山南路344号3F-301", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G5PfKtD4W23QrGOq" },
+    // --- 浦口区 ---
+        { position: [118.639324,32.069748], title: "江浦校区", content: "南京市浦口区海都路8号金盛田广场2F024-50商铺", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l7if713xJtkBLy5m" },
+    // --- 江宁区 ---
+        { position: [118.84739,31.928693], title: "竹山路校区", content: "南京市江宁区竹山路551号楼E区1楼局部", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H9irejNax4a6oLdt" },
+        { position: [118.820852,31.931825], title: "江宁金鹰校区", content: "南京市江宁区双龙大道1688号江宁购物中心内的A03层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H4xm1y59ZiTUJ2mM" },
+    // --- 建邺区 ---
+        { position: [118.737175,32.015675], title: "兴隆大街校区", content: "南京市建邺区江东中路211号三楼", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l6ZxfekeAjE6YokW" },
+        { position: [118.722122,31.984657], title: "奥体雨润校区", content: "南京市建邺区雨润大街88-2号沙洲街道服务中心3号楼2层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H2S9fLxtxhy1RCfm#comment" },
+        { position: [118.706775,31.966875], title: "奥南邻里茂校区", content: "南京市建邺区太清路6号东南邻里茂购物中心F210室", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "" },
+    // --- 鼓楼区 ---
+        { position: [118.747977,32.047217], title: "清凉门校区", content: "江苏省南京市清凉门大街60号里圩社区服务中心北区二层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G1N2xGJDgVoGlhko" },
+        { position: [118.77861,32.08347], title: "许府巷校区", content: "南京市鼓楼区芦席营97号长江科技园A座1层、B座1层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l7STGGjmA5B5alq0#comment" },
+        { position: [118.803504,32.09946], title: "迈皋桥校区", content: "南京市鼓楼区和燕路239号南昌大厦第三层整层及一楼部分公共使用部位综合大厅", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/jMJl1pnlQv32oLig" },
+        { position: [118.74049,32.044635], title: "清江苏宁校区", content: "江苏省南京市鼓楼区江东北路88号清江广场苏宁广场3F、4F", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l45PNKo9sT131a0k#comment" },
+        { position: [118.741478,32.085963], title: "鼓楼滨江校区", content: "南京市鼓楼区热河南路2号的江苏国际人才公寓裙楼A座L2层", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/G38afZUlzVxIyA1j#comment" },
+        { position: [118.773491,32.071264], title: "马台街校区", content: "南京市鼓楼区马台街99号三层F311-315", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H3bbHJLjC4bVG8bg" },
+        { position: [118.742864,32.058797], title: "龙江校区", content: "鼓楼区草场门大街96号中青大厦1,2号二层东", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H11YYGEV7ag2BWAy" },
+    // --- 玄武区 ---
+        { position: [118.784711,32.057818], title: "鼓楼校区", content: "中山路366号南京鼓楼邮政大厦2楼", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/l65kImEcSwo64d2Q" },
+        { position: [118.85871,32.035648], title: "孝陵卫校区", content: "南京市玄武区中山门大街297号5幢106/107/108/110/111/113室", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/k9bEyqID1Ay9SqP8" },
+    // --- 栖霞区 ---
+        { position: [118.978879,32.130015], title: "仙林湖校区", content: "南京市栖霞区仙林学森路仙林湖社区服务中心A1栋3楼306、308、310-315、343", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/k76TRinqcZdQSMZn#comment" },
+        { position: [118.922866,32.097065], title: "仙林高科校区", content: "南京市栖霞区闲林街道仙林大学城学津路8号高创大厦二楼部分9-12商铺", category: "shopping", color: "#ff4d4f", label: "", image: "", link: "https://www.dianping.com/shop/H3fe7sMTkGPhruCs" },
+        { position: [118.740514, 32.044607], title: "清江校区", content: "苏宁广场四楼", category: "history", color: "#1890ff", label: "", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.baidu.com" },
+        { position: [118.788487, 32.022987], title: "夫子庙", content: "中国四大文庙之一", category: "culture", color: "#52c41a", label: "", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png", link: "http://www.njfzm.net/" },
+        { position: [118.79647, 32.07057], title: "玄武湖", content: "江南三大名湖之一", category: "scenery", color: "#faad14", label: "", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png", link: "https://baike.baidu.com" }
     ];
 
-    // 定义一个 SVG 图标字符串 (外部链接图标)
     var linkIconSvg = `
         <svg class="link-icon-svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <path d="M869 487.8L491.2 159.9c-2.9-2.5-6.6-3.9-10.5-3.9h-88.5c-7.4 0-10.8 9.2-5.2 14l350.2 304H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h585.1L386.9 854c-5.6 4.9-2.2 14 5.2 14h91.5c1.9 0 3.8-0.7 5.2-2L869 536.2c14.7-12.8 14.7-35.6 0-48.4z"></path>
@@ -215,8 +314,6 @@
                 anchor: 'bottom-center'
             });
 
-            // --- 修改重点 ---
-            // 在标题 <a> 标签内加入了 linkIconSvg
             var infoContent = `
                 <div class="custom-info">
                     <div class="info-close-btn" onclick="map.clearInfoWindow()">×</div>
@@ -248,6 +345,9 @@
     }
 
     function filterMarkers(category) {
+        // 阻止事件冒泡，防止点击按钮时触发面板折叠
+        event.stopPropagation(); 
+        
         var buttons = document.querySelectorAll('.filter-btn');
         buttons.forEach(btn => btn.classList.remove('active'));
         event.currentTarget.classList.add('active');
@@ -288,4 +388,3 @@
 </script>
 </body>
 </html>
-
