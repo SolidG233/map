@@ -206,6 +206,16 @@
         .link-icon-svg { width: 16px; height: 16px; margin-left: 6px; fill: #999; }
         .custom-info h3 a:hover .link-icon-svg { fill: #1890ff; }
         .custom-info p { margin: 0; color: #666; font-size: 13px; line-height: 1.5; }
+
+        /* --- 定位按钮样式微调 (覆盖高德默认样式) --- */
+        .amap-geolocation-con .amap-geo {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border-radius: 4px;
+            background-color: #fff;
+            width: 32px;
+            height: 32px;
+            border: none;
+        }
     </style>
     
     <script type="text/javascript">
@@ -304,8 +314,6 @@
             var hasImage = item.image && item.image !== "";
             
             // 构建 Marker 的 HTML
-            // 1. marker-preview-img: 悬停时显示的图片
-            // 2. marker-label: 文字标签 (如果有图片，加 has-img-label 类；没有图片，加 no-img-label 类)
             var markerContent = `
                 <div class="css-marker dynamic-marker" style="background-color: ${item.color};">
                     ${hasImage ? `<img src="${item.image}" class="marker-preview-img">` : ''}
@@ -382,9 +390,43 @@
 
     renderMarkers(markersData);
 
-    AMap.plugin(['AMap.ToolBar', 'AMap.Scale'], function(){
+    // --- 修改部分：引入定位插件 ---
+    AMap.plugin(['AMap.ToolBar', 'AMap.Scale', 'AMap.Geolocation'], function(){
         map.addControl(new AMap.ToolBar());
         map.addControl(new AMap.Scale());
+
+        // 初始化定位插件
+        var geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true, // 是否使用高精度定位，默认:true
+            timeout: 10000,           // 超过10秒后停止定位，默认：5s
+            buttonPosition: 'RB',     // 定位按钮的停靠位置 (RB表示右下角)
+            buttonOffset: new AMap.Pixel(20, 20), // 定位按钮与设置的停靠位置的偏移量
+            zoomToAccuracy: true,     // 定位成功后是否自动调整地图视野到定位点
+            
+            // 自定义定位点样式 (圆点 + 精度圈)
+            markerOptions: {
+                content: '<div style="width:16px;height:16px;background:#1890ff;border:3px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
+                offset: new AMap.Pixel(-8, -8)
+            },
+            circleOptions: {
+                strokeColor: '#1890ff',
+                strokeOpacity: 0.5,
+                strokeWeight: 1,
+                fillColor: '#1890ff',
+                fillOpacity: 0.2
+            }
+        });
+        
+        map.addControl(geolocation);
+        
+        // 页面加载完成后自动定位一次
+        geolocation.getCurrentPosition(function(status,result){
+            if(status=='complete'){
+                console.log('定位成功');
+            }else{
+                console.log('定位失败', result);
+            }
+        });
     });
 
 </script>
