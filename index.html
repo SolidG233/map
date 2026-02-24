@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>南京新东方校区分布地图</title>
+    <title>南京新东方校区分布地图 - 路线规划版</title>
     <style>
         html, body, #container {
             width: 100%;
@@ -24,25 +24,25 @@
             border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             z-index: 100;
-            width: 200px;
+            width: 160px; /* 稍微调窄一点 */
             overflow: hidden;
             transition: height 0.3s ease;
         }
 
         .panel-header {
-            padding: 15px;
+            padding: 12px 15px;
             background: #fff;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid transparent;
+            border-bottom: 1px solid #eee;
         }
         
         .panel-header:hover { background-color: #f5f5f5; }
-        .panel-header h4 { margin: 0; font-size: 16px; color: #333; }
+        .panel-header h4 { margin: 0; font-size: 15px; color: #333; }
         .toggle-icon { font-size: 12px; color: #999; transition: transform 0.3s; }
-        .panel-content { padding: 0 15px 15px 15px; display: block; }
+        .panel-content { padding: 10px; display: block; }
         
         .control-panel.collapsed .panel-content { display: none; }
         .control-panel.collapsed .panel-header { border-bottom: none; }
@@ -51,14 +51,15 @@
         .filter-btn {
             display: block;
             width: 100%;
-            padding: 8px;
-            margin-bottom: 8px;
+            padding: 6px 10px;
+            margin-bottom: 6px;
             border: 1px solid #ddd;
             background: #f9f9f9;
             cursor: pointer;
             border-radius: 4px;
             text-align: left;
             transition: all 0.3s;
+            font-size: 13px;
         }
         .filter-btn:last-child { margin-bottom: 0; }
         .filter-btn:hover, .filter-btn.active {
@@ -66,131 +67,72 @@
             border-color: #1890ff;
             color: #1890ff;
         }
-        .filter-btn span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+        .filter-btn span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
 
-        /* --- 标记点基础样式 --- */
-        .css-marker {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            box-shadow: 0 0 4px rgba(0,0,0,0.4);
-            border: 2px solid white;
-            position: relative;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
+        /* --- 路线结果面板 (新增) --- */
+        #routePanel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            max-height: 80%;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            z-index: 99;
+            overflow-y: auto;
+            display: none; /* 默认隐藏 */
+            padding: 10px;
+        }
+        #routePanel .amap-call { display: none; } /* 隐藏高德默认的打车按钮 */
+        .close-route-btn {
+            text-align: right;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 5px;
             cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            color: #999;
         }
 
-        /* 1. 文字标签样式 */
+        /* --- 标记点样式 --- */
+        .css-marker {
+            width: 16px; height: 16px; border-radius: 50%;
+            box-shadow: 0 0 4px rgba(0,0,0,0.4); border: 2px solid white;
+            position: relative; transition: all 0.2s ease; box-sizing: border-box;
+            cursor: pointer; display: flex; justify-content: center; align-items: center;
+        }
         .marker-label {
-            position: absolute;
-            top: -28px; /* 文字在上方 */
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #333;
-            white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            border: 1px solid #eee;
-            pointer-events: none; /* 让鼠标点击穿透文字，点到下面的Marker */
-            
-            opacity: 0; 
-            visibility: hidden;
-            transition: opacity 0.2s, visibility 0.2s;
-            font-weight: bold;
-            z-index: 10;
+            position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.95); padding: 4px 8px;
+            border-radius: 4px; font-size: 12px; color: #333; white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 1px solid #eee;
+            pointer-events: none; opacity: 0; visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s; font-weight: bold; z-index: 10;
         }
-
-        /* 2. 悬停图片预览样式 (新增功能) */
         .marker-preview-img {
-            position: absolute;
-            bottom: 24px; /* 图片在点上方 */
-            left: 50%;
-            transform: translateX(-50%) scale(0); /* 默认缩小隐藏 */
-            width: 100px; /* 预览图宽度 */
-            height: 70px; /* 预览图高度 */
-            object-fit: cover;
-            border-radius: 6px;
-            border: 2px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            background: #fff;
-            z-index: 20; /* 层级最高，盖住文字 */
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 弹性弹出效果 */
-            transform-origin: bottom center;
-            pointer-events: none;
+            position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%) scale(0);
+            width: 100px; height: 70px; object-fit: cover; border-radius: 6px;
+            border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            background: #fff; z-index: 20; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: bottom center; pointer-events: none;
         }
-
-        /* 标记点下方的小箭头 */
         .marker-arrow {
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top-width: 5px;
-            border-top-style: solid;
-            opacity: 0;
-            transition: opacity 0.2s;
+            position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent;
+            border-top-width: 5px; border-top-style: solid; opacity: 0; transition: opacity 0.2s;
         }
+        .css-marker:hover { transform: scale(1.2) !important; z-index: 999; }
+        .css-marker:hover .marker-preview-img { transform: translateX(-50%) scale(1); }
+        .css-marker:hover .has-img-label { opacity: 0 !important; visibility: hidden !important; }
+        .css-marker:hover .no-img-label { opacity: 1; visibility: visible; }
+        .css-marker.show-text { width: 20px; height: 20px; }
+        .css-marker.show-text .marker-arrow { opacity: 1; }
+        .css-marker.show-text .marker-label { opacity: 1; visibility: visible; }
 
-        /* --- 交互状态控制 --- */
-        
-        /* 状态A: 鼠标悬停时 */
-        .css-marker:hover {
-            transform: scale(1.2) !important;
-            z-index: 999;
-        }
-        
-        /* 悬停时：如果有图片，显示图片；如果没有图片，显示文字 */
-        .css-marker:hover .marker-preview-img {
-            transform: translateX(-50%) scale(1); /* 图片弹出 */
-        }
-        
-        /* 悬停时：如果显示了图片，就把文字隐藏掉，防止重叠难看 */
-        .css-marker:hover .has-img-label {
-            opacity: 0 !important; 
-            visibility: hidden !important;
-        }
-        
-        /* 悬停时：如果没有图片，务必显示文字 */
-        .css-marker:hover .no-img-label {
-            opacity: 1;
-            visibility: visible;
-        }
-
-
-        /* 状态B: 地图放大模式 (Zoom > 13.5) */
-        .css-marker.show-text {
-            width: 20px;
-            height: 20px;
-        }
-        .css-marker.show-text .marker-arrow {
-            opacity: 1;
-        }
-        /* 放大时显示文字 */
-        .css-marker.show-text .marker-label {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* --- 弹窗样式 (点击后的大图) --- */
+        /* --- 弹窗样式 --- */
         .custom-info { 
-            position: relative; 
-            padding: 0; 
-            background: white; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
-            width: 280px; 
-            overflow: hidden; 
+            position: relative; padding: 0; background: white; border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; overflow: hidden; 
         }
         .info-close-btn {
             position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
@@ -198,23 +140,42 @@
             line-height: 22px; border-radius: 50%; font-size: 18px; cursor: pointer; z-index: 10;
         }
         .info-close-btn:hover { background: rgba(0,0,0,0.7); }
-        .custom-info-img { width: 100%; height: 160px; object-fit: cover; display: block; }
-        .custom-info-body { padding: 15px; }
-        .custom-info h3 { margin: 0 0 8px 0; font-size: 16px; border-left-width: 4px; border-left-style: solid; padding-left: 8px; display: flex; align-items: center;}
+        .custom-info-img { width: 100%; height: 140px; object-fit: cover; display: block; }
+        .custom-info-body { padding: 12px; }
+        .custom-info h3 { margin: 0 0 6px 0; font-size: 16px; border-left-width: 4px; border-left-style: solid; padding-left: 8px; display: flex; align-items: center;}
         .custom-info h3 a { text-decoration: none; color: #333; display: flex; align-items: center; }
         .custom-info h3 a:hover { color: #1890ff; text-decoration: underline; }
         .link-icon-svg { width: 16px; height: 16px; margin-left: 6px; fill: #999; }
-        .custom-info h3 a:hover .link-icon-svg { fill: #1890ff; }
-        .custom-info p { margin: 0; color: #666; font-size: 13px; line-height: 1.5; }
+        .custom-info p { margin: 0 0 10px 0; color: #666; font-size: 13px; line-height: 1.4; }
 
-        /* --- 定位按钮样式微调 (覆盖高德默认样式) --- */
-        .amap-geolocation-con .amap-geo {
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        /* --- 导航按钮组 (新增) --- */
+        .nav-btn-group {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        .nav-btn {
+            flex: 1;
+            margin: 0 4px;
+            padding: 6px 0;
+            border: 1px solid #1890ff;
+            color: #1890ff;
+            background: #fff;
             border-radius: 4px;
-            background-color: #fff;
-            width: 32px;
-            height: 32px;
-            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .nav-btn:hover { background: #1890ff; color: white; }
+        .nav-btn:first-child { margin-left: 0; }
+        .nav-btn:last-child { margin-right: 0; }
+
+        /* --- 定位按钮微调 --- */
+        .amap-geolocation-con .amap-geo {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); border-radius: 4px; background-color: #fff;
+            width: 32px; height: 32px; border: none;
         }
     </style>
     
@@ -229,6 +190,7 @@
 
 <div id="container"></div>
 
+<!-- 筛选面板 -->
 <div class="control-panel collapsed" id="filterPanel">
     <div class="panel-header" onclick="togglePanel()">
         <h4>分类筛选</h4>
@@ -243,6 +205,12 @@
     </div>
 </div>
 
+<!-- 路线结果面板 -->
+<div id="routePanel">
+    <div class="close-route-btn" onclick="closeRoutePanel()">关闭路线 ×</div>
+    <div id="routeContent"></div>
+</div>
+
 <script type="text/javascript">
     var map = new AMap.Map('container', {
         zoom: 12, 
@@ -250,9 +218,19 @@
         viewMode: '3D'
     });
 
+    // 全局变量
+    var userPosition = null; // 存储用户当前位置
+    var currentRoutePlugin = null; // 存储当前的路线规划插件实例
+
     function togglePanel() {
-        var panel = document.getElementById('filterPanel');
-        panel.classList.toggle('collapsed');
+        document.getElementById('filterPanel').classList.toggle('collapsed');
+    }
+
+    function closeRoutePanel() {
+        document.getElementById('routePanel').style.display = 'none';
+        if (currentRoutePlugin) {
+            currentRoutePlugin.clear(); // 清除地图上的路线
+        }
     }
 
     var currentMarkers = [];
@@ -310,10 +288,7 @@
         currentMarkers = [];
 
         data.forEach(function(item) {
-            // 判断是否有图片
             var hasImage = item.image && item.image !== "";
-            
-            // 构建 Marker 的 HTML
             var markerContent = `
                 <div class="css-marker dynamic-marker" style="background-color: ${item.color};">
                     ${hasImage ? `<img src="${item.image}" class="marker-preview-img">` : ''}
@@ -331,7 +306,7 @@
                 anchor: 'center'
             });
 
-            // 点击后的详细弹窗 (保留大图)
+            // 弹窗内容：增加了导航按钮组
             var infoContent = `
                 <div class="custom-info">
                     <div class="info-close-btn" onclick="map.clearInfoWindow()">×</div>
@@ -344,6 +319,11 @@
                             </a>
                         </h3>
                         <p>${item.content}</p>
+                        <div class="nav-btn-group">
+                            <button class="nav-btn" onclick="startNavigation('driving', ${item.position[0]}, ${item.position[1]})">🚗 驾车</button>
+                            <button class="nav-btn" onclick="startNavigation('transfer', ${item.position[0]}, ${item.position[1]})">🚌 公交</button>
+                            <button class="nav-btn" onclick="startNavigation('walking', ${item.position[0]}, ${item.position[1]})">🚶 步行</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -385,25 +365,89 @@
         });
     }
 
+    // --- 核心功能：开始导航 ---
+    function startNavigation(type, endLng, endLat) {
+        if (!userPosition) {
+            alert("正在获取您的位置，请稍后重试（请确保浏览器允许定位）");
+            return;
+        }
+
+        // 关闭信息窗体
+        map.clearInfoWindow();
+        
+        // 显示路线面板
+        var panel = document.getElementById('routePanel');
+        panel.style.display = 'block';
+        document.getElementById('routeContent').innerHTML = '<p style="color:#666;text-align:center;">正在规划路线...</p>';
+
+        // 清除之前的路线
+        if (currentRoutePlugin) {
+            currentRoutePlugin.clear();
+        }
+
+        var startPoint = userPosition;
+        var endPoint = [endLng, endLat];
+
+        // 根据类型加载不同的插件
+        if (type === 'driving') {
+            AMap.plugin('AMap.Driving', function() {
+                currentRoutePlugin = new AMap.Driving({
+                    map: map,
+                    panel: "routeContent", // 结果显示在面板中
+                    policy: AMap.DrivingPolicy.LEAST_TIME
+                });
+                currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
+                    if (status !== 'complete') {
+                        document.getElementById('routeContent').innerHTML = '<p style="color:red;">路线规划失败: ' + result + '</p>';
+                    }
+                });
+            });
+        } else if (type === 'transfer') {
+            AMap.plugin('AMap.Transfer', function() {
+                currentRoutePlugin = new AMap.Transfer({
+                    map: map,
+                    panel: "routeContent",
+                    city: '南京市', // 公交必须指定城市
+                    policy: AMap.TransferPolicy.LEAST_TIME
+                });
+                currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
+                    if (status !== 'complete') {
+                        document.getElementById('routeContent').innerHTML = '<p style="color:red;">未找到合适的公交路线</p>';
+                    }
+                });
+            });
+        } else if (type === 'walking') {
+            AMap.plugin('AMap.Walking', function() {
+                currentRoutePlugin = new AMap.Walking({
+                    map: map,
+                    panel: "routeContent"
+                });
+                currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
+                    if (status !== 'complete') {
+                        document.getElementById('routeContent').innerHTML = '<p style="color:red;">距离过远，不建议步行</p>';
+                    }
+                });
+            });
+        }
+    }
+
     map.on('zoomchange', updateMarkerSize);
     map.on('zoomend', updateMarkerSize);
 
     renderMarkers(markersData);
 
-    // --- 修改部分：引入定位插件 ---
-    AMap.plugin(['AMap.ToolBar', 'AMap.Scale', 'AMap.Geolocation'], function(){
+    // --- 插件加载与定位 ---
+    // 加载了 Driving, Transfer, Walking 插件
+    AMap.plugin(['AMap.ToolBar', 'AMap.Scale', 'AMap.Geolocation', 'AMap.Driving', 'AMap.Transfer', 'AMap.Walking'], function(){
         map.addControl(new AMap.ToolBar());
         map.addControl(new AMap.Scale());
 
-        // 初始化定位插件
         var geolocation = new AMap.Geolocation({
-            enableHighAccuracy: true, // 是否使用高精度定位，默认:true
-            timeout: 10000,           // 超过10秒后停止定位，默认：5s
-            buttonPosition: 'RB',     // 定位按钮的停靠位置 (RB表示右下角)
-            buttonOffset: new AMap.Pixel(20, 20), // 定位按钮与设置的停靠位置的偏移量
-            zoomToAccuracy: true,     // 定位成功后是否自动调整地图视野到定位点
-            
-            // 自定义定位点样式 (圆点 + 精度圈)
+            enableHighAccuracy: true,
+            timeout: 10000,
+            buttonPosition: 'RB',
+            buttonOffset: new AMap.Pixel(20, 20),
+            zoomToAccuracy: false, // 定位成功后不要自动缩放，以免打扰用户浏览
             markerOptions: {
                 content: '<div style="width:16px;height:16px;background:#1890ff;border:3px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
                 offset: new AMap.Pixel(-8, -8)
@@ -419,12 +463,14 @@
         
         map.addControl(geolocation);
         
-        // 页面加载完成后自动定位一次
-        geolocation.getCurrentPosition(function(status,result){
+        // 监听定位成功事件，保存用户位置
+        geolocation.getCurrentPosition(function(status, result){
             if(status=='complete'){
-                console.log('定位成功');
+                console.log('定位成功', result.position);
+                userPosition = [result.position.lng, result.position.lat]; // 保存位置
             }else{
                 console.log('定位失败', result);
+                alert("定位失败，无法使用导航功能，请检查浏览器权限。");
             }
         });
     });
