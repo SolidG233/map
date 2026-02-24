@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>南京新东方校区分布地图 - 路线规划版</title>
+    <title>南京新东方校区分布地图 - 底部导航版</title>
     <style>
         html, body, #container {
             width: 100%;
@@ -12,9 +12,10 @@
             margin: 0;
             padding: 0;
             font-family: "Microsoft YaHei", sans-serif;
+            overflow: hidden; /* 防止页面整体滚动 */
         }
 
-        /* --- 控制面板样式 --- */
+        /* --- 筛选面板样式 --- */
         .control-panel {
             position: absolute;
             top: 20px;
@@ -24,7 +25,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             z-index: 100;
-            width: 160px; /* 稍微调窄一点 */
+            width: 160px;
             overflow: hidden;
             transition: height 0.3s ease;
         }
@@ -38,12 +39,12 @@
             align-items: center;
             border-bottom: 1px solid #eee;
         }
-        
+
         .panel-header:hover { background-color: #f5f5f5; }
         .panel-header h4 { margin: 0; font-size: 15px; color: #333; }
         .toggle-icon { font-size: 12px; color: #999; transition: transform 0.3s; }
         .panel-content { padding: 10px; display: block; }
-        
+
         .control-panel.collapsed .panel-content { display: none; }
         .control-panel.collapsed .panel-header { border-bottom: none; }
         .control-panel.collapsed .toggle-icon { transform: rotate(-90deg); }
@@ -69,29 +70,71 @@
         }
         .filter-btn span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
 
-        /* --- 路线结果面板 (新增) --- */
+        /* --- 路线结果面板 (修改为底部弹出) --- */
         #routePanel {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 280px;
-            max-height: 80%;
+            bottom: 0;           /* 靠底部 */
+            left: 0;             /* 靠左 */
+            width: 100%;         /* 宽度占满 */
+            height: 45vh;        /* 默认高度占屏幕 45% */
+            max-height: 80vh;    /* 最大高度 */
             background: white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            border-radius: 8px;
-            z-index: 99;
-            overflow-y: auto;
-            display: none; /* 默认隐藏 */
-            padding: 10px;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.15); /* 阴影向上 */
+            border-radius: 16px 16px 0 0; /* 只有上面两个角是圆角 */
+            z-index: 999;        /* 确保层级够高 */
+            display: flex;       /* 使用 Flex 布局方便排版 */
+            flex-direction: column;
+            transform: translateY(105%); /* 默认隐藏在屏幕下方 */
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 平滑动画 */
+            box-sizing: border-box; 
         }
-        #routePanel .amap-call { display: none; } /* 隐藏高德默认的打车按钮 */
-        .close-route-btn {
-            text-align: right;
-            padding-bottom: 5px;
+
+        /* 激活状态类，用于显示面板 */
+        #routePanel.active {
+            transform: translateY(0);
+        }
+
+        /* 面板头部 */
+        .route-header {
+            padding: 12px 15px;
             border-bottom: 1px solid #eee;
-            margin-bottom: 5px;
-            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            flex-shrink: 0; /* 防止头部被压缩 */
+        }
+
+        .route-title {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .close-route-btn {
+            font-size: 24px;
             color: #999;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 10px;
+        }
+
+        /* 路线内容区域，允许滚动 */
+        #routeContent {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            -webkit-overflow-scrolling: touch; /* 移动端滚动优化 */
+        }
+        
+        /* 隐藏高德默认的打车按钮 */
+        #routePanel .amap-call { display: none; } 
+        
+        /* 调整高德路线详情的样式，使其适应移动端 */
+        .amap-lib-driving, .amap-lib-transfer, .amap-lib-walking {
+            border: none !important;
+            background: none !important;
         }
 
         /* --- 标记点样式 --- */
@@ -130,9 +173,9 @@
         .css-marker.show-text .marker-label { opacity: 1; visibility: visible; }
 
         /* --- 弹窗样式 --- */
-        .custom-info { 
-            position: relative; padding: 0; background: white; border-radius: 8px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; overflow: hidden; 
+        .custom-info {
+            position: relative; padding: 0; background: white; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; overflow: hidden;
         }
         .info-close-btn {
             position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
@@ -148,7 +191,7 @@
         .link-icon-svg { width: 16px; height: 16px; margin-left: 6px; fill: #999; }
         .custom-info p { margin: 0 0 10px 0; color: #666; font-size: 13px; line-height: 1.4; }
 
-        /* --- 导航按钮组 (新增) --- */
+        /* --- 导航按钮组 --- */
         .nav-btn-group {
             display: flex;
             justify-content: space-between;
@@ -177,304 +220,327 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.3); border-radius: 4px; background-color: #fff;
             width: 32px; height: 32px; border: none;
         }
+        /* 调整定位按钮位置，防止被底部面板遮挡 */
+        .amap-geolocation-con {
+            bottom: 40px !important; 
+            right: 20px !important;
+        }
     </style>
-    
+
     <script type="text/javascript">
         window._AMapSecurityConfig = {
-            securityJsCode: '6dad3452c1fdd8a908cee2623088afa5' 
+            securityJsCode: '6dad3452c1fdd8a908cee2623088afa5'
         }
     </script>
     <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=0a20910de98845bf4c6dc64da5e505a4"></script>
 </head>
 <body>
 
-<div id="container"></div>
+    <div id="container"></div>
 
-<!-- 筛选面板 -->
-<div class="control-panel collapsed" id="filterPanel">
-    <div class="panel-header" onclick="togglePanel()">
-        <h4>分类筛选</h4>
-        <span class="toggle-icon">▼</span>
+    <!-- 筛选面板 -->
+    <div class="control-panel collapsed" id="filterPanel">
+        <div class="panel-header" onclick="togglePanel()">
+            <h4>分类筛选</h4>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="panel-content">
+            <button class="filter-btn active" onclick="filterMarkers('all')"><span style="background: #333;"></span>全部显示</button>
+            <button class="filter-btn" onclick="filterMarkers('shopping')"><span style="background: #ff4d4f;"></span>青少素质</button>
+            <button class="filter-btn" onclick="filterMarkers('history')"><span style="background: #1890ff;"></span>历史古迹</button>
+            <button class="filter-btn" onclick="filterMarkers('culture')"><span style="background: #52c41a;"></span>文化圣地</button>
+            <button class="filter-btn" onclick="filterMarkers('scenery')"><span style="background: #faad14;"></span>自然风光</button>
+        </div>
     </div>
-    <div class="panel-content">
-        <button class="filter-btn active" onclick="filterMarkers('all')"><span style="background: #333;"></span>全部显示</button>
-        <button class="filter-btn" onclick="filterMarkers('shopping')"><span style="background: #ff4d4f;"></span>青少素质</button>
-        <button class="filter-btn" onclick="filterMarkers('history')"><span style="background: #1890ff;"></span>历史古迹</button>
-        <button class="filter-btn" onclick="filterMarkers('culture')"><span style="background: #52c41a;"></span>文化圣地</button>
-        <button class="filter-btn" onclick="filterMarkers('scenery')"><span style="background: #faad14;"></span>自然风光</button>
+
+    <!-- 路线结果面板 (底部弹出版) -->
+    <div id="routePanel">
+        <div class="route-header">
+            <span class="route-title">路线详情</span>
+            <span class="close-route-btn" onclick="closeRoutePanel()">×</span>
+        </div>
+        <div id="routeContent"></div>
     </div>
-</div>
 
-<!-- 路线结果面板 -->
-<div id="routePanel">
-    <div class="close-route-btn" onclick="closeRoutePanel()">关闭路线 ×</div>
-    <div id="routeContent"></div>
-</div>
+    <script type="text/javascript">
+        var map = new AMap.Map('container', {
+            zoom: 12,
+            center: [118.796877, 32.060255],
+            viewMode: '3D'
+        });
 
-<script type="text/javascript">
-    var map = new AMap.Map('container', {
-        zoom: 12, 
-        center: [118.796877, 32.060255], 
-        viewMode: '3D'
-    });
+        // 全局变量
+        var userPosition = null; 
+        var currentRoutePlugin = null; 
 
-    // 全局变量
-    var userPosition = null; // 存储用户当前位置
-    var currentRoutePlugin = null; // 存储当前的路线规划插件实例
-
-    function togglePanel() {
-        document.getElementById('filterPanel').classList.toggle('collapsed');
-    }
-
-    function closeRoutePanel() {
-        document.getElementById('routePanel').style.display = 'none';
-        if (currentRoutePlugin) {
-            currentRoutePlugin.clear(); // 清除地图上的路线
+        function togglePanel() {
+            document.getElementById('filterPanel').classList.toggle('collapsed');
         }
-    }
 
-    var currentMarkers = [];
-    var markersData = [
-        // --- 六合 ---
-        { position: [118.843058,32.328519], title: "六合天街校区", content: "南京市六合区雄州街道景兰路2号", category: "shopping", color: "#ff4d4f", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.dianping.com/shop/l9bjzjzlFUlQjmL6" },
-        // --- 雨花台区 ---
-        { position: [118.77743,31.981767], title: "雨花校区", content: "南京市雨花台区郁金香路19号东侧1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G4PXVKBK923j7k1V" },
-        { position: [118.66072,31.907891], title: "板桥花生唐校区", content: "南京市雨花台区新湖大道9号花样年、花生唐3幢1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G7eFapESneJIKgtJ" },
-        // --- 江北新区 ---
-        { position: [118.726544,32.137333], title: "桥北弘阳校区", content: "南京市江北新区大桥北路48号弘阳广场A2馆3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l3i49yPmxvwpOc3M" },
-        { position: [118.743301,32.14203], title: "柳洲东路校区", content: "南京市浦口区柳洲东路189号京新邻里广场第二层", category: "shopping", color: "#ff4d4f", image: "", link: "" },
-        { position: [118.76135,32.231782], title: "大厂慕斯荟校区", content: "南京市江北新区大厂葛关路380-1号慕斯荟3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H2yDYLyDTHm70mqx" },
-        // --- 秦淮区 ---
-        { position: [118.781153,32.020138], title: "三山街校区", content: "南京市秦淮区长乐路9号2号楼1层部分房屋", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k8GcGTvbS8rlbPjN" },
-        { position: [118.808904,32.032336], title: "瑞金路校区", content: "南京市秦淮区瑞金路街道1楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l83MvhDgf36p8ryM" },
-        { position: [118.783418,32.030423], title: "张府园校区", content: "南京市秦淮区中山南路344号3F-301", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G5PfKtD4W23QrGOq" },
-        // --- 浦口区 ---
-        { position: [118.639324,32.069748], title: "江浦校区", content: "南京市浦口区海都路8号金盛田广场2F024-50商铺", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l7if713xJtkBLy5m" },
-        // --- 江宁区 ---
-        { position: [118.84739,31.928693], title: "竹山路校区", content: "南京市江宁区竹山路551号楼E区1楼局部", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H9irejNax4a6oLdt" },
-        { position: [118.820852,31.931825], title: "江宁金鹰校区", content: "南京市江宁区双龙大道1688号江宁购物中心内的A03层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H4xm1y59ZiTUJ2mM" },
-        // --- 建邺区 ---
-        { position: [118.737175,32.015675], title: "兴隆大街校区", content: "南京市建邺区江东中路211号三楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l6ZxfekeAjE6YokW" },
-        { position: [118.722122,31.984657], title: "奥体雨润校区", content: "南京市建邺区雨润大街88-2号沙洲街道服务中心3号楼2层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H2S9fLxtxhy1RCfm#comment" },
-        { position: [118.706775,31.966875], title: "奥南邻里茂校区", content: "南京市建邺区太清路6号东南邻里茂购物中心F210室", category: "shopping", color: "#ff4d4f", image: "", link: "" },
-        // --- 鼓楼区 ---
-        { position: [118.747977,32.047217], title: "清凉门校区", content: "江苏省南京市清凉门大街60号里圩社区服务中心北区二层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G1N2xGJDgVoGlhko" },
-        { position: [118.77861,32.08347], title: "许府巷校区", content: "南京市鼓楼区芦席营97号长江科技园A座1层、B座1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l7STGGjmA5B5alq0#comment" },
-        { position: [118.803504,32.09946], title: "迈皋桥校区", content: "南京市鼓楼区和燕路239号南昌大厦第三层整层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/jMJl1pnlQv32oLig" },
-        { position: [118.74049,32.044635], title: "清江苏宁校区", content: "江苏省南京市鼓楼区江东北路88号清江广场苏宁广场3F、4F", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l45PNKo9sT131a0k#comment" },
-        { position: [118.741478,32.085963], title: "鼓楼滨江校区", content: "南京市鼓楼区热河南路2号的江苏国际人才公寓裙楼A座L2层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G38afZUlzVxIyA1j#comment" },
-        { position: [118.773491,32.071264], title: "马台街校区", content: "南京市鼓楼区马台街99号三层F311-315", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H3bbHJLjC4bVG8bg" },
-        { position: [118.742864,32.058797], title: "龙江校区", content: "鼓楼区草场门大街96号中青大厦1,2号二层东", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H11YYGEV7ag2BWAy" },
-        // --- 玄武区 ---
-        { position: [118.784711,32.057818], title: "鼓楼校区", content: "中山路366号南京鼓楼邮政大厦2楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l65kImEcSwo64d2Q" },
-        { position: [118.85871,32.035648], title: "孝陵卫校区", content: "南京市玄武区中山门大街297号5幢106/107/108/110/111/113室", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k9bEyqID1Ay9SqP8" },
-        // --- 栖霞区 ---
-        { position: [118.978879,32.130015], title: "仙林湖校区", content: "南京市栖霞区仙林学森路仙林湖社区服务中心A1栋3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k76TRinqcZdQSMZn#comment" },
-        { position: [118.922866,32.097065], title: "仙林高科校区", content: "南京市栖霞区闲林街道仙林大学城学津路8号高创大厦二楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H3fe7sMTkGPhruCs" },
-        // --- 其他 ---
-        { position: [118.740514, 32.044607], title: "清江校区", content: "苏宁广场四楼", category: "history", color: "#1890ff", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.baidu.com" },
-        { position: [118.788487, 32.022987], title: "夫子庙", content: "中国四大文庙之一", category: "culture", color: "#52c41a", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png", link: "http://www.njfzm.net/" },
-        { position: [118.79647, 32.07057], title: "玄武湖", content: "江南三大名湖之一", category: "scenery", color: "#faad14", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png", link: "https://baike.baidu.com" }
-    ];
+        // 修改后的关闭函数
+        function closeRoutePanel() {
+            var panel = document.getElementById('routePanel');
+            panel.classList.remove('active'); // 移除 active 类，触发下滑动画
+            
+            // 延迟清空内容，等待动画结束
+            setTimeout(function() {
+                if (currentRoutePlugin) {
+                    currentRoutePlugin.clear(); 
+                }
+                document.getElementById('routeContent').innerHTML = '';
+            }, 300);
+        }
 
-    var linkIconSvg = `
+        var currentMarkers = [];
+        var markersData = [
+            // --- 六合 ---
+            { position: [118.843058,32.328519], title: "六合天街校区", content: "南京市六合区雄州街道景兰路2号", category: "shopping", color: "#ff4d4f", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.dianping.com/shop/l9bjzjzlFUlQjmL6" },
+            // --- 雨花台区 ---
+            { position: [118.77743,31.981767], title: "雨花校区", content: "南京市雨花台区郁金香路19号东侧1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G4PXVKBK923j7k1V" },
+            { position: [118.66072,31.907891], title: "板桥花生唐校区", content: "南京市雨花台区新湖大道9号花样年、花生唐3幢1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G7eFapESneJIKgtJ" },
+            // --- 江北新区 ---
+            { position: [118.726544,32.137333], title: "桥北弘阳校区", content: "南京市江北新区大桥北路48号弘阳广场A2馆3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l3i49yPmxvwpOc3M" },
+            { position: [118.743301,32.14203], title: "柳洲东路校区", content: "南京市浦口区柳洲东路189号京新邻里广场第二层", category: "shopping", color: "#ff4d4f", image: "", link: "" },
+            { position: [118.76135,32.231782], title: "大厂慕斯荟校区", content: "南京市江北新区大厂葛关路380-1号慕斯荟3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H2yDYLyDTHm70mqx" },
+            // --- 秦淮区 ---
+            { position: [118.781153,32.020138], title: "三山街校区", content: "南京市秦淮区长乐路9号2号楼1层部分房屋", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k8GcGTvbS8rlbPjN" },
+            { position: [118.808904,32.032336], title: "瑞金路校区", content: "南京市秦淮区瑞金路街道1楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l83MvhDgf36p8ryM" },
+            { position: [118.783418,32.030423], title: "张府园校区", content: "南京市秦淮区中山南路344号3F-301", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G5PfKtD4W23QrGOq" },
+            // --- 浦口区 ---
+            { position: [118.639324,32.069748], title: "江浦校区", content: "南京市浦口区海都路8号金盛田广场2F024-50商铺", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l7if713xJtkBLy5m" },
+            // --- 江宁区 ---
+            { position: [118.84739,31.928693], title: "竹山路校区", content: "南京市江宁区竹山路551号楼E区1楼局部", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H9irejNax4a6oLdt" },
+            { position: [118.820852,31.931825], title: "江宁金鹰校区", content: "南京市江宁区双龙大道1688号江宁购物中心内的A03层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H4xm1y59ZiTUJ2mM" },
+            // --- 建邺区 ---
+            { position: [118.737175,32.015675], title: "兴隆大街校区", content: "南京市建邺区江东中路211号三楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l6ZxfekeAjE6YokW" },
+            { position: [118.722122,31.984657], title: "奥体雨润校区", content: "南京市建邺区雨润大街88-2号沙洲街道服务中心3号楼2层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H2S9fLxtxhy1RCfm#comment" },
+            { position: [118.706775,31.966875], title: "奥南邻里茂校区", content: "南京市建邺区太清路6号东南邻里茂购物中心F210室", category: "shopping", color: "#ff4d4f", image: "", link: "" },
+            // --- 鼓楼区 ---
+            { position: [118.747977,32.047217], title: "清凉门校区", content: "江苏省南京市清凉门大街60号里圩社区服务中心北区二层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G1N2xGJDgVoGlhko" },
+            { position: [118.77861,32.08347], title: "许府巷校区", content: "南京市鼓楼区芦席营97号长江科技园A座1层、B座1层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l7STGGjmA5B5alq0#comment" },
+            { position: [118.803504,32.09946], title: "迈皋桥校区", content: "南京市鼓楼区和燕路239号南昌大厦第三层整层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/jMJl1pnlQv32oLig" },
+            { position: [118.74049,32.044635], title: "清江苏宁校区", content: "江苏省南京市鼓楼区江东北路88号清江广场苏宁广场3F、4F", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l45PNKo9sT131a0k#comment" },
+            { position: [118.741478,32.085963], title: "鼓楼滨江校区", content: "南京市鼓楼区热河南路2号的江苏国际人才公寓裙楼A座L2层", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/G38afZUlzVxIyA1j#comment" },
+            { position: [118.773491,32.071264], title: "马台街校区", content: "南京市鼓楼区马台街99号三层F311-315", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H3bbHJLjC4bVG8bg" },
+            { position: [118.742864,32.058797], title: "龙江校区", content: "鼓楼区草场门大街96号中青大厦1,2号二层东", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H11YYGEV7ag2BWAy" },
+            // --- 玄武区 ---
+            { position: [118.784711,32.057818], title: "鼓楼校区", content: "中山路366号南京鼓楼邮政大厦2楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/l65kImEcSwo64d2Q" },
+            { position: [118.85871,32.035648], title: "孝陵卫校区", content: "南京市玄武区中山门大街297号5幢106/107/108/110/111/113室", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k9bEyqID1Ay9SqP8" },
+            // --- 栖霞区 ---
+            { position: [118.978879,32.130015], title: "仙林湖校区", content: "南京市栖霞区仙林学森路仙林湖社区服务中心A1栋3楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/k76TRinqcZdQSMZn#comment" },
+            { position: [118.922866,32.097065], title: "仙林高科校区", content: "南京市栖霞区闲林街道仙林大学城学津路8号高创大厦二楼", category: "shopping", color: "#ff4d4f", image: "", link: "https://www.dianping.com/shop/H3fe7sMTkGPhruCs" },
+            // --- 其他 ---
+            { position: [118.740514, 32.044607], title: "清江校区", content: "苏宁广场四楼", category: "history", color: "#1890ff", image: "https://img.heliar.top/file/1770800822471_banner_拷贝.jpg", link: "https://www.baidu.com" },
+            { position: [118.788487, 32.022987], title: "夫子庙", content: "中国四大文庙之一", category: "culture", color: "#52c41a", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png", link: "http://www.njfzm.net/" },
+            { position: [118.79647, 32.07057], title: "玄武湖", content: "江南三大名湖之一", category: "scenery", color: "#faad14", image: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png", link: "https://baike.baidu.com" }
+        ];
+
+        var linkIconSvg = `
         <svg class="link-icon-svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <path d="M869 487.8L491.2 159.9c-2.9-2.5-6.6-3.9-10.5-3.9h-88.5c-7.4 0-10.8 9.2-5.2 14l350.2 304H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h585.1L386.9 854c-5.6 4.9-2.2 14 5.2 14h91.5c1.9 0 3.8-0.7 5.2-2L869 536.2c14.7-12.8 14.7-35.6 0-48.4z"></path>
         </svg>
-    `;
+        `;
 
-    function renderMarkers(data) {
-        map.remove(currentMarkers);
-        currentMarkers = [];
+        function renderMarkers(data) {
+            map.remove(currentMarkers);
+            currentMarkers = [];
 
-        data.forEach(function(item) {
-            var hasImage = item.image && item.image !== "";
-            var markerContent = `
-                <div class="css-marker dynamic-marker" style="background-color: ${item.color};">
-                    ${hasImage ? `<img src="${item.image}" class="marker-preview-img">` : ''}
-                    <span class="marker-label ${hasImage ? 'has-img-label' : 'no-img-label'}" style="border-left: 3px solid ${item.color}">${item.title}</span>
-                    <div class="marker-arrow" style="border-top-color: ${item.color};"></div>
-                </div>
-            `;
+            data.forEach(function(item) {
+                var hasImage = item.image && item.image !== "";
+                var markerContent = `
+                    <div class="css-marker dynamic-marker" style="background-color: ${item.color};">
+                        ${hasImage ? `<img src="${item.image}" class="marker-preview-img">` : ''}
+                        <span class="marker-label ${hasImage ? 'has-img-label' : 'no-img-label'}" style="border-left: 3px solid ${item.color}">${item.title}</span>
+                        <div class="marker-arrow" style="border-top-color: ${item.color};"></div>
+                    </div>
+                `;
 
-            var marker = new AMap.Marker({
-                position: item.position,
-                map: map,
-                content: markerContent,
-                title: item.title,
-                offset: new AMap.Pixel(-8, -8),
-                anchor: 'center'
-            });
+                var marker = new AMap.Marker({
+                    position: item.position,
+                    map: map,
+                    content: markerContent,
+                    title: item.title,
+                    offset: new AMap.Pixel(-8, -8),
+                    anchor: 'center'
+                });
 
-            // 弹窗内容：增加了导航按钮组
-            var infoContent = `
-                <div class="custom-info">
-                    <div class="info-close-btn" onclick="map.clearInfoWindow()">×</div>
-                    ${hasImage ? `<img src="${item.image}" class="custom-info-img" alt="${item.title}">` : ''}
-                    <div class="custom-info-body">
-                        <h3 style="border-left-color: ${item.color};">
-                            <a href="${item.link}" target="_blank">
-                                ${item.title}
-                                ${linkIconSvg}
-                            </a>
-                        </h3>
-                        <p>${item.content}</p>
-                        <div class="nav-btn-group">
-                            <button class="nav-btn" onclick="startNavigation('driving', ${item.position[0]}, ${item.position[1]})">🚗 驾车</button>
-                            <button class="nav-btn" onclick="startNavigation('transfer', ${item.position[0]}, ${item.position[1]})">🚌 公交</button>
-                            <button class="nav-btn" onclick="startNavigation('walking', ${item.position[0]}, ${item.position[1]})">🚶 步行</button>
+                // 弹窗内容
+                var infoContent = `
+                    <div class="custom-info">
+                        <div class="info-close-btn" onclick="map.clearInfoWindow()">×</div>
+                        ${hasImage ? `<img src="${item.image}" class="custom-info-img" alt="${item.title}">` : ''}
+                        <div class="custom-info-body">
+                            <h3 style="border-left-color: ${item.color};">
+                                <a href="${item.link}" target="_blank">
+                                    ${item.title}
+                                    ${linkIconSvg}
+                                </a>
+                            </h3>
+                            <p>${item.content}</p>
+                            <div class="nav-btn-group">
+                                <button class="nav-btn" onclick="startNavigation('driving', ${item.position[0]}, ${item.position[1]})">🚗 驾车</button>
+                                <button class="nav-btn" onclick="startNavigation('transfer', ${item.position[0]}, ${item.position[1]})">🚌 公交</button>
+                                <button class="nav-btn" onclick="startNavigation('walking', ${item.position[0]}, ${item.position[1]})">🚶 步行</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+
+                var infoWindow = new AMap.InfoWindow({
+                    isCustom: true,
+                    content: infoContent,
+                    offset: new AMap.Pixel(0, -20)
+                });
+
+                marker.on('click', function() { infoWindow.open(map, marker.getPosition()); });
+
+                currentMarkers.push(marker);
+            });
+
+            updateMarkerSize();
+        }
+
+        function filterMarkers(category) {
+            event.stopPropagation();
+            var buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            if (category === 'all') renderMarkers(markersData);
+            else renderMarkers(markersData.filter(item => item.category === category));
+        }
+
+        function updateMarkerSize() {
+            var zoom = map.getZoom();
+            var markerDoms = document.querySelectorAll('.dynamic-marker');
+            var showTextThreshold = 13.5;
+
+            markerDoms.forEach(function(dom) {
+                if (zoom >= showTextThreshold) {
+                    dom.classList.add('show-text');
+                } else {
+                    dom.classList.remove('show-text');
+                }
+            });
+        }
+
+        // --- 核心功能：开始导航 ---
+        function startNavigation(type, endLng, endLat) {
+            if (!userPosition) {
+                alert("正在获取您的位置，请稍后重试（请确保浏览器允许定位）");
+                // 模拟定位数据用于测试（如果真实环境定位失败，可以解开下面注释进行测试）
+                // userPosition = [118.796877, 32.060255]; 
+                return;
+            }
+
+            // 1. 关闭信息窗体
+            map.clearInfoWindow();
             
-            var infoWindow = new AMap.InfoWindow({ 
-                isCustom: true, 
-                content: infoContent, 
-                offset: new AMap.Pixel(0, -20)
-            });
+            // 2. 显示底部面板 (通过添加 class 触发动画)
+            var panel = document.getElementById('routePanel');
+            var titleSpan = panel.querySelector('.route-title');
+            
+            // 设置标题
+            var typeName = type === 'driving' ? '驾车' : (type === 'transfer' ? '公交' : '步行');
+            titleSpan.innerText = typeName + "路线规划";
+            
+            panel.classList.add('active'); 
+            
+            document.getElementById('routeContent').innerHTML = '<p style="color:#666;text-align:center;padding-top:20px;">正在规划路线...</p>';
 
-            marker.on('click', function() { infoWindow.open(map, marker.getPosition()); });
-
-            currentMarkers.push(marker);
-        });
-        
-        updateMarkerSize();
-    }
-
-    function filterMarkers(category) {
-        event.stopPropagation(); 
-        var buttons = document.querySelectorAll('.filter-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.currentTarget.classList.add('active');
-        if (category === 'all') renderMarkers(markersData);
-        else renderMarkers(markersData.filter(item => item.category === category));
-    }
-
-    function updateMarkerSize() {
-        var zoom = map.getZoom(); 
-        var markerDoms = document.querySelectorAll('.dynamic-marker');
-        var showTextThreshold = 13.5; 
-
-        markerDoms.forEach(function(dom) {
-            if (zoom >= showTextThreshold) {
-                dom.classList.add('show-text');
-            } else {
-                dom.classList.remove('show-text');
+            // 3. 清除之前的路线
+            if (currentRoutePlugin) {
+                currentRoutePlugin.clear();
             }
-        });
-    }
 
-    // --- 核心功能：开始导航 ---
-    function startNavigation(type, endLng, endLat) {
-        if (!userPosition) {
-            alert("正在获取您的位置，请稍后重试（请确保浏览器允许定位）");
-            return;
+            var startPoint = userPosition;
+            var endPoint = [endLng, endLat];
+
+            // 根据类型加载不同的插件
+            if (type === 'driving') {
+                AMap.plugin('AMap.Driving', function() {
+                    currentRoutePlugin = new AMap.Driving({
+                        map: map,
+                        panel: "routeContent", 
+                        policy: AMap.DrivingPolicy.LEAST_TIME
+                    });
+                    currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
+                        if (status !== 'complete') {
+                            document.getElementById('routeContent').innerHTML = '<p style="padding:15px;color:red;">路线规划失败: ' + result + '</p>';
+                        }
+                    });
+                });
+            } else if (type === 'transfer') {
+                AMap.plugin('AMap.Transfer', function() {
+                    currentRoutePlugin = new AMap.Transfer({
+                        map: map,
+                        panel: "routeContent",
+                        city: '南京市', 
+                        policy: AMap.TransferPolicy.LEAST_TIME
+                    });
+                    currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
+                        if (status !== 'complete') {
+                            document.getElementById('routeContent').innerHTML = '<p style="padding:15px;color:red;">未找到合适的公交路线</p>';
+                        }
+                    });
+                });
+            } else if (type === 'walking') {
+                AMap.plugin('AMap.Walking', function() {
+                    currentRoutePlugin = new AMap.Walking({
+                        map: map,
+                        panel: "routeContent"
+                    });
+                    currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
+                        if (status !== 'complete') {
+                            document.getElementById('routeContent').innerHTML = '<p style="padding:15px;color:red;">距离过远，不建议步行</p>';
+                        }
+                    });
+                });
+            }
         }
 
-        // 关闭信息窗体
-        map.clearInfoWindow();
-        
-        // 显示路线面板
-        var panel = document.getElementById('routePanel');
-        panel.style.display = 'block';
-        document.getElementById('routeContent').innerHTML = '<p style="color:#666;text-align:center;">正在规划路线...</p>';
+        map.on('zoomchange', updateMarkerSize);
+        map.on('zoomend', updateMarkerSize);
 
-        // 清除之前的路线
-        if (currentRoutePlugin) {
-            currentRoutePlugin.clear();
-        }
+        renderMarkers(markersData);
 
-        var startPoint = userPosition;
-        var endPoint = [endLng, endLat];
+        // --- 插件加载与定位 ---
+        AMap.plugin(['AMap.ToolBar', 'AMap.Scale', 'AMap.Geolocation', 'AMap.Driving', 'AMap.Transfer', 'AMap.Walking'], function(){
+            map.addControl(new AMap.ToolBar());
+            map.addControl(new AMap.Scale());
 
-        // 根据类型加载不同的插件
-        if (type === 'driving') {
-            AMap.plugin('AMap.Driving', function() {
-                currentRoutePlugin = new AMap.Driving({
-                    map: map,
-                    panel: "routeContent", // 结果显示在面板中
-                    policy: AMap.DrivingPolicy.LEAST_TIME
-                });
-                currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
-                    if (status !== 'complete') {
-                        document.getElementById('routeContent').innerHTML = '<p style="color:red;">路线规划失败: ' + result + '</p>';
-                    }
-                });
+            var geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true,
+                timeout: 10000,
+                buttonPosition: 'RB',
+                buttonOffset: new AMap.Pixel(20, 20),
+                zoomToAccuracy: false, 
+                markerOptions: {
+                    content: '<div style="width:16px;height:16px;background:#1890ff;border:3px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
+                    offset: new AMap.Pixel(-8, -8)
+                },
+                circleOptions: {
+                    strokeColor: '#1890ff',
+                    strokeOpacity: 0.5,
+                    strokeWeight: 1,
+                    fillColor: '#1890ff',
+                    fillOpacity: 0.2
+                }
             });
-        } else if (type === 'transfer') {
-            AMap.plugin('AMap.Transfer', function() {
-                currentRoutePlugin = new AMap.Transfer({
-                    map: map,
-                    panel: "routeContent",
-                    city: '南京市', // 公交必须指定城市
-                    policy: AMap.TransferPolicy.LEAST_TIME
-                });
-                currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
-                    if (status !== 'complete') {
-                        document.getElementById('routeContent').innerHTML = '<p style="color:red;">未找到合适的公交路线</p>';
-                    }
-                });
+
+            map.addControl(geolocation);
+
+            // 监听定位成功事件，保存用户位置
+            geolocation.getCurrentPosition(function(status, result){
+                if(status=='complete'){
+                    console.log('定位成功', result.position);
+                    userPosition = [result.position.lng, result.position.lat]; 
+                }else{
+                    console.log('定位失败', result);
+                    alert("定位失败，无法使用导航功能，请检查浏览器权限。");
+                }
             });
-        } else if (type === 'walking') {
-            AMap.plugin('AMap.Walking', function() {
-                currentRoutePlugin = new AMap.Walking({
-                    map: map,
-                    panel: "routeContent"
-                });
-                currentRoutePlugin.search(startPoint, endPoint, function(status, result) {
-                    if (status !== 'complete') {
-                        document.getElementById('routeContent').innerHTML = '<p style="color:red;">距离过远，不建议步行</p>';
-                    }
-                });
-            });
-        }
-    }
-
-    map.on('zoomchange', updateMarkerSize);
-    map.on('zoomend', updateMarkerSize);
-
-    renderMarkers(markersData);
-
-    // --- 插件加载与定位 ---
-    // 加载了 Driving, Transfer, Walking 插件
-    AMap.plugin(['AMap.ToolBar', 'AMap.Scale', 'AMap.Geolocation', 'AMap.Driving', 'AMap.Transfer', 'AMap.Walking'], function(){
-        map.addControl(new AMap.ToolBar());
-        map.addControl(new AMap.Scale());
-
-        var geolocation = new AMap.Geolocation({
-            enableHighAccuracy: true,
-            timeout: 10000,
-            buttonPosition: 'RB',
-            buttonOffset: new AMap.Pixel(20, 20),
-            zoomToAccuracy: false, // 定位成功后不要自动缩放，以免打扰用户浏览
-            markerOptions: {
-                content: '<div style="width:16px;height:16px;background:#1890ff;border:3px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
-                offset: new AMap.Pixel(-8, -8)
-            },
-            circleOptions: {
-                strokeColor: '#1890ff',
-                strokeOpacity: 0.5,
-                strokeWeight: 1,
-                fillColor: '#1890ff',
-                fillOpacity: 0.2
-            }
         });
-        
-        map.addControl(geolocation);
-        
-        // 监听定位成功事件，保存用户位置
-        geolocation.getCurrentPosition(function(status, result){
-            if(status=='complete'){
-                console.log('定位成功', result.position);
-                userPosition = [result.position.lng, result.position.lat]; // 保存位置
-            }else{
-                console.log('定位失败', result);
-                alert("定位失败，无法使用导航功能，请检查浏览器权限。");
-            }
-        });
-    });
 
-</script>
+    </script>
 </body>
 </html>
